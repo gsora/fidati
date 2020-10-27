@@ -9,9 +9,15 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
 
-var Build string
-var Revision string
-var banner string
+var (
+	// Build is a string which contains build user, host and date.
+	Build string
+
+	// Revision contains the git revision (last hash and/or tag).
+	Revision string
+
+	banner string
+)
 
 func init() {
 	banner = fmt.Sprintf("%s/%s (%s) • %s %s",
@@ -41,23 +47,26 @@ func init() {
 func main() {
 	log.Println(banner)
 
+	go rebootWatcher()
+
+	startUSB()
+}
+
+func rebootWatcher() {
 	buf := make([]byte, 1)
-	go func() {
-		for {
-			runtime.Gosched()
-			imx6.UART2.Read(buf)
-			if buf[0] == 0 {
-				continue
-			}
 
-			if buf[0] == 'r' {
-				log.Println("rebooting...")
-				imx6.Reboot()
-			}
-
-			buf[0] = 0
+	for {
+		runtime.Gosched()
+		imx6.UART2.Read(buf)
+		if buf[0] == 0 {
+			continue
 		}
-	}()
 
-	StartUSB()
+		if buf[0] == 'r' {
+			log.Println("rebooting...")
+			imx6.Reboot()
+		}
+
+		buf[0] = 0
+	}
 }
