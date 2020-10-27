@@ -2,8 +2,10 @@ package u2ftoken
 
 import "errors"
 
-var notSatisfied = ErrorResponse(ErrConditionNotSatisfied).Bytes()
+// a ready-made instance of the errConditionNotSatisfied error.
+var notSatisfied = errorResponse(errConditionNotSatisfied).Bytes()
 
+// HandleMessage handles a request, and returns a response byte slice.
 func HandleMessage(req Request) []byte {
 	var resp Response
 	var handleErr error
@@ -22,7 +24,7 @@ func HandleMessage(req Request) []byte {
 	}
 
 	if handleErr != nil {
-		var err ErrorCode
+		var err errorCode
 
 		if !errors.As(handleErr, &err) {
 			// this is a strange error, log it and return ErrConditionNotSatisfied
@@ -30,7 +32,7 @@ func HandleMessage(req Request) []byte {
 			return notSatisfied
 		}
 
-		return ErrorResponse(err).Bytes()
+		return errorResponse(err).Bytes()
 	}
 
 	ulog.Println("response len: ", len(resp.Bytes()))

@@ -9,13 +9,14 @@ import (
 )
 
 const (
+	// we expect no more than 64 bytes in the Data section of our Request.
 	expectedDataLen = 64
 )
 
 func handleRegister(req Request) (Response, error) {
 	if len(req.Data) != expectedDataLen {
 		ulog.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
-		return Response{}, ErrWrongLength
+		return Response{}, errWrongLength
 	}
 
 	challengeParam := req.Data[:32]
@@ -57,7 +58,7 @@ func handleRegister(req Request) (Response, error) {
 	resp.Write(sign)
 	return Response{
 		Data:       resp.Bytes(),
-		StatusCode: NoError.Bytes(),
+		StatusCode: noError.Bytes(),
 	}, nil
 }
 

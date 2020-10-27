@@ -10,18 +10,23 @@ import (
 	"fmt"
 )
 
+// global keyStorage instance, will be removed as soon as we have a proper system to
+// do storage persistence.
 var ks *keyStorage
 
+// keyStorage stores registered relying party keys.
 type keyStorage struct {
 	M map[[32]byte]keyItem
 }
 
+// newKeyStorage initializes a new keyStorage instance.
 func newKeyStorage() *keyStorage {
 	return &keyStorage{
 		M: map[[32]byte]keyItem{},
 	}
 }
 
+// Bytes returns the byte slice representation of ks.
 func (ks *keyStorage) Bytes() []byte {
 	ret := new(bytes.Buffer)
 	enc := gob.NewEncoder(ret)
@@ -33,12 +38,14 @@ func (ks *keyStorage) Bytes() []byte {
 	return ret.Bytes()
 }
 
+// keyItem represents a registered relying party key pair.
 type keyItem struct {
 	ID         [32]byte
 	PrivateKey *ecdsa.PrivateKey
 	Counter    uint64
 }
 
+// newKeyItem initializes a new keyItem for a given appID, and stores it into ks.
 func (ks *keyStorage) newKeyItem(appID []byte) (ki *keyItem, err error) {
 	ki = &keyItem{}
 
@@ -60,6 +67,7 @@ func (ks *keyStorage) newKeyItem(appID []byte) (ki *keyItem, err error) {
 	return
 }
 
+// item returns the keyItem associated with key.
 func (ks *keyStorage) item(key [32]byte) (keyItem, error) {
 	i, ok := ks.M[key]
 	if !ok {
@@ -69,6 +77,7 @@ func (ks *keyStorage) item(key [32]byte) (keyItem, error) {
 	return i, nil
 }
 
+// incrementKeyItem increments Counter of the keyItem associated with key.
 func (ks *keyStorage) incrementKeyItem(key [32]byte) (uint32, error) {
 	i, ok := ks.M[key]
 	if !ok {

@@ -12,75 +12,98 @@ import (
 var (
 	ulog = log.New(os.Stdout, "u2ftoken :: ", log.Lshortfile)
 
+	//PSA: both of those values are filled in this package's init.go
+
+	// X.509 attestation certificate, sent along in registration requests
 	attestationCertificate []byte
-	attestationPrivkey     *ecdsa.PrivateKey
+
+	// ECDSA private key, used to sign registration requests
+	attestationPrivkey *ecdsa.PrivateKey
 )
 
-//go:generate stringer -type=Command
-type Command uint8
+// command represents a U2F standard command.
+// See https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.pdf for more
+// details.
+//go:generate stringer -type=command
+type command uint8
 
 const (
-	_ Command = iota
+	_ command = iota
+	// Register registers a new relying party.
 	Register
+
+	// Authenticate authenticates a relying party with the associated identity, stored in the token.
 	Authenticate
+
+	// Version returns the standard "U2F_V2" version string.
 	Version
 )
 
-/*
-SW_NO_ERROR (0x9000): The command completed successfully without error.
-SW_CONDITIONS_NOT_SATISFIED (0x6985): The request was rejected due to test-of-user-presence being required.
-SW_WRONG_DATA (0x6A80): The request was rejected due to an invalid key handle.
-SW_WRONG_LENGTH (0x6700): The length of the request was invalid.
-SW_CLA_NOT_SUPPORTED (0x6E00): The Class byte of the request is not supported.
-SW_INS_NOT_SUPPORTED (0x6D00): The Instruction of the request is not supported
-*/
+// errorCode represents a U2F standard error code.
+//go:generate stringer -type=errorCode
+type errorCode uint16
 
-//go:generate stringer -type=ErrorCode
-type ErrorCode uint16
-
-func (ec ErrorCode) Error() string {
+// Error implements the error interface.
+func (ec errorCode) Error() string {
 	return ec.String()
 }
 
-func (c ErrorCode) Bytes() [2]byte {
+// Bytes returns the byte array representation of c.
+func (ec errorCode) Bytes() [2]byte {
 	var ret [2]byte
-	binary.BigEndian.PutUint16(ret[:], uint16(c))
+	binary.BigEndian.PutUint16(ret[:], uint16(ec))
 	return ret
 }
 
 const (
-	NoError                  ErrorCode = 0x9000
-	ErrConditionNotSatisfied ErrorCode = 0x6985
-	ErrWrongData             ErrorCode = 0x6A80
-	ErrWrongLength           ErrorCode = 0x6700
-	ErrClaNotSupported       ErrorCode = 0x6E00
-	ErrInsNotSupported       ErrorCode = 0x6D00
+	// The command completed successfully without error.
+	noError errorCode = 0x9000
+
+	// The request was rejected due to test-of-user-presence being required.
+	errConditionNotSatisfied errorCode = 0x6985
+
+	// The request was rejected due to an invalid key handle.
+	errWrongData errorCode = 0x6A80
+
+	// The length of the request was invalid.
+	errWrongLength errorCode = 0x6700
+
+	// The Class byte of the request is not supported.
+	errClaNotSupported errorCode = 0x6E00
+
+	// The Instruction of the request is not supported.
+	errInsNotSupported errorCode = 0x6D00
 )
 
-func ErrorResponse(errCode ErrorCode) Response {
+// errorResponse returns a Response struct which wraps errCode.
+func errorResponse(errCode errorCode) Response {
 	return Response{
 		Data:       []byte{},
 		StatusCode: errCode.Bytes(),
 	}
 }
 
+// Params holds the two APDU standard request parameters.
 type Params struct {
 	First  uint8
 	Second uint8
 }
 
+// Request represents a standard APDU request.
 type Request struct {
-	Command          Command
+	Command          command
 	Parameters       Params
 	MaxResponseBytes uint16
 	Data             []byte
 }
 
+// Response represents a standard APDU response.
 type Response struct {
 	Data       []byte
 	StatusCode [2]byte
 }
 
+// Bytes returns the byte slice representation of r.
 func (r Response) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, r.Data)
@@ -88,6 +111,8 @@ func (r Response) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// ParseRequest parses req as a U2F request.
+// It returns a Request instance filled with the appropriate data from req, and an error.
 func ParseRequest(req []byte) (Request, error) {
 	var ret Request
 
@@ -99,7 +124,7 @@ func ParseRequest(req []byte) (Request, error) {
 		return Request{}, fmt.Errorf("first byte of request must be zero")
 	}
 
-	ret.Command = Command(req[1])
+	ret.Command = command(req[1])
 	ret.Parameters = Params{
 		First:  req[2],
 		Second: req[3],
@@ -129,11 +154,8 @@ func ParseRequest(req []byte) (Request, error) {
 	return ret, nil
 }
 
-func buildResponse(req Request, resp Response) ([]byte, error) {
-	/*if len(resp.Data) > int(req.MaxResponseBytes) && req.Command != Version {
-		return ErrorResponse(ErrWrongLength).Bytes(), fmt.Errorf("data is longer than max response bytes requested")
-	}*/
-
+// buildResponse returns a byte slice containing APDU bytes to appropriately respond to the associated Request.
+func buildResponse(_ Request, resp Response) ([]byte, error) {
 	return resp.Bytes(), nil
 
 }

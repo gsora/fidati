@@ -9,9 +9,10 @@ import (
 	"log"
 )
 
-const minimumLen = 32 + 32 + 1 // control byte + challenge param + app param + key handle len
-
 const (
+	// we expect no less than minimumLen bytes when parsing an Authenticate request.
+	minimumLen = 32 + 32 + 1 // control byte + challenge param + app param + key handle len
+
 	controlCheckOnly                      = 0x07
 	controlEnforceUserPresenceAndSign     = 0x03
 	controlDontEnforceUserPresenceAndSign = 0x08
@@ -19,7 +20,7 @@ const (
 
 func handleAuthenticate(req Request) (Response, error) {
 	if len(req.Data) < minimumLen {
-		return Response{}, ErrWrongLength
+		return Response{}, errWrongLength
 	}
 
 	controlByte := req.Parameters.First
@@ -37,7 +38,7 @@ func handleAuthenticate(req Request) (Response, error) {
 	if len(req.Data) != int(minimumLen+khLen) {
 		ulog.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
 		// total data len must be equal to minimumLen + khLen (headers + length of the key handle)
-		return Response{}, ErrWrongLength
+		return Response{}, errWrongLength
 	}
 
 	kh := req.Data[minimumLen : minimumLen+khLen]
@@ -51,12 +52,12 @@ func handleAuthenticate(req Request) (Response, error) {
 		if err == nil { // key found
 			ulog.Println("key found")
 			return Response{
-				StatusCode: ErrConditionNotSatisfied.Bytes(),
+				StatusCode: errConditionNotSatisfied.Bytes(),
 			}, nil
 		}
 
 		return Response{
-			StatusCode: ErrWrongData.Bytes(),
+			StatusCode: errWrongData.Bytes(),
 		}, nil
 	} else if err != nil {
 		ulog.Println("some kind of error", err)
@@ -93,7 +94,7 @@ func handleAuthenticate(req Request) (Response, error) {
 
 	return Response{
 		Data:       resp.Bytes(),
-		StatusCode: NoError.Bytes(),
+		StatusCode: noError.Bytes(),
 	}, nil
 }
 
