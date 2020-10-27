@@ -63,3 +63,10 @@ The key handle is defined as follows:
 ```
 keyHandle := applicationID + attestationPrivateKey
 ``` 
+
+## Debugging
+
+To test U2F token registration and login, the following tools can be used:
+ - https://mdp.github.io/u2fdemo/
+ - https://demo.yubico.com/webauthn-technical/registration
+ - https://github.com/Yubico/java-webauthn-server/
