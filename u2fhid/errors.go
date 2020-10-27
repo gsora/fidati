@@ -6,22 +6,43 @@ import (
 	"fmt"
 )
 
+// u2fError represent some kind of error happened during the u2fhid processing.
 //go:generate stringer -type=u2fError
 type u2fError uint8
 
 const (
-	None         u2fError = 0
-	InvalidCmd   u2fError = 1
-	InvalidPar   u2fError = 2
-	InvalidLen   u2fError = 3
-	InvalidSeq   u2fError = 4
-	MsgTimeout   u2fError = 5
-	ChannelBusy  u2fError = 6
-	LockRequired u2fError = 10
-	InvalidCid   u2fError = 11
-	Other        u2fError = 127
+	// no error
+	none u2fError = 0
+
+	// invalid command
+	invalidCmd u2fError = 1
+
+	// invalid parameter
+	invalidPar u2fError = 2
+
+	// invalid length
+	invalidLen u2fError = 3
+
+	// invalid sequence number
+	invalidSeq u2fError = 4
+
+	// timeout
+	msgTimeout u2fError = 5
+
+	// communication channel is busy
+	channelBusy u2fError = 6
+
+	// a channel lock is required
+	lockRequired u2fError = 10
+
+	// invalid channel id
+	invalidCid u2fError = 11
+
+	// other kind of error
+	other u2fError = 127
 )
 
+// generateError generates a u2fError payload ready to be sent on the wire.
 func generateError(code u2fError, session *session, pkt u2fPacket) [][]byte {
 	b := new(bytes.Buffer)
 

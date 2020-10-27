@@ -19,6 +19,7 @@ var (
 	ulog = log.New(os.Stdout, "u2fhid :: ", log.Lshortfile)
 )
 
+// zeroPad pads b with as many zeroes as needed to have len(b) == 64.
 func zeroPad(b []byte) []byte {
 	if len(b) == 64 {
 		return b
@@ -31,6 +32,8 @@ func zeroPad(b []byte) []byte {
 	return b
 }
 
+// Tx handles USB endpoint data outtake.
+// res will always not be nil.
 func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 	if state.outboundMsgs == nil || state.accumulatingMsgs {
 		return
@@ -68,6 +71,8 @@ func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 	return
 }
 
+// Rx handles data intake, parses messages and builds responses.
+// res will always be nil.
 func (*Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 	if buf == nil {
 		return
@@ -85,6 +90,8 @@ func (*Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 	return
 }
 
+// parseMsg parses msg and constructs a slice of messages ready to be sent over the wire.
+// Each response message is exactly 64 bytes in length.
 func parseMsg(msg []byte) ([][]byte, error) {
 	// TODO: handle panic-ing better than this...
 	defer func() {
@@ -95,7 +102,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 	}()
 
 	if len(msg) != 64 { // something's wrong
-		return nil, fmt.Errorf("wrong message length, expected 64 but got", len(msg))
+		return nil, fmt.Errorf("wrong message length, expected 64 but got %d", len(msg))
 	}
 
 	cmd := msg[4]
@@ -172,12 +179,14 @@ func parseMsg(msg []byte) ([][]byte, error) {
 	return nil, nil
 }
 
-func numPackets(len int) int {
+// numPackets returns the number of packets needed to properly respond to a message.
+func numPackets(rawMsgLen int) int {
 	// 59 is the number of data bytes available in a continuation packet
 	// 64 - (4 bytes channel id + 1 byte sequence number)
-	return int(math.Ceil(float64(len) / float64(continuationPacketDataLen)))
+	return int(math.Ceil(float64(rawMsgLen) / float64(continuationPacketDataLen)))
 }
 
+// split splits msg into 64 bytes units.
 func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
 	numPktsNoInitial := numPackets(len(msg) - 57) // we exclude a packet, which will be built separately
 
@@ -205,17 +214,20 @@ func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
 	return ret
 }
 
+// broadcastReq responds to broadcast messages, sent with channel id [255, 255, 255, 255].
 func broadcastReq(ip initPacket) []byte {
 	if ip.Cmd != cmdInit {
-		panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command))
+		panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
 	}
 
 	ulog.Println("found cmdInit on broadcast channel")
 
 	b := new(bytes.Buffer)
 	u := initResponse{
-		Command:            ip.Command(),
-		ChannelID:          ip.ChannelID,
+		standardResponse: standardResponse{
+			Command:   ip.Command(),
+			ChannelID: ip.ChannelID,
+		},
 		ProtocolVersion:    12,
 		MajorDeviceVersion: 4,
 		MinorDeviceVersion: 2,
@@ -226,10 +238,16 @@ func broadcastReq(ip initPacket) []byte {
 	copy(u.Nonce[:], ip.Data)
 
 	binary.BigEndian.PutUint16(u.Count[:], 17)
-	binary.Write(b, binary.LittleEndian, u)
+	err := binary.Write(b, binary.LittleEndian, u)
+	if err != nil {
+		panic(
+			fmt.Sprintf("cannot serialize initResponse: %s", err.Error()),
+		)
+	}
 	return b.Bytes()
 }
 
+// packetBuilder builds response packages for a given session, depending on session.command.
 func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 	ulog.Println("message", u2fHIDCommand(pkt.Command()))
 	switch session.command {
@@ -268,6 +286,6 @@ func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 		return pkts, nil
 	default:
 		ulog.Printf("command %d not found, sending error payload", session.command)
-		return generateError(InvalidCmd, session, pkt), nil
+		return generateError(invalidCmd, session, pkt), nil
 	}
 }

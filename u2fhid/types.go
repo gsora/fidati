@@ -6,9 +6,11 @@ import (
 	"fmt"
 )
 
-type u2fhidReport []byte
+// u2fHIDReport is a byte slice holding a standard U2F HID report.
+type u2fHIDReport []byte
 
-func (r *u2fhidReport) Bytes() []byte {
+// Bytes returns the byte slice representation of r.
+func (r *u2fHIDReport) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, r)
 	if err != nil {
@@ -17,8 +19,9 @@ func (r *u2fhidReport) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// DefaultReport is the standard report descriptor for a USB HID FIDO2 token.
 // https://chromium.googlesource.com/chromiumos/platform2/+/master/u2fd/u2fhid.cc
-var DefaultReport = u2fhidReport{
+var DefaultReport = u2fHIDReport{
 	0x06, 0xD0, 0xF1, /* Usage Page (FIDO Alliance), FIDO_USAGE_PAGE */
 	0x09, 0x01, /* Usage (U2F HID Auth. Device) FIDO_USAGE_U2FHID */
 	0xA1, 0x01, /* Collection (Application), HID_APPLICATION */
@@ -55,8 +58,11 @@ const (
 	cmdSync u2fHIDCommand = 0x80 | 0x3c
 )
 
+// Handler holds methods for sending and receiving packets.
 type Handler struct{}
 
+// u2fPacket is implemented by U2F HID packets, and exposes methods that must be implemented
+// to retrieve channel id, command, length, packet count and so on.
 type u2fPacket interface {
 	Channel() uint32
 	ChannelBytes() [4]byte
@@ -65,6 +71,7 @@ type u2fPacket interface {
 	Count() uint16
 }
 
+// session holds informations about a single operation currently happening (MSG, PING...).
 type session struct {
 	data         []byte
 	command      u2fHIDCommand
@@ -73,6 +80,7 @@ type session struct {
 	lastSequence uint8
 }
 
+// clear clears a session, setting everything to their default values.
 func (s *session) clear() {
 	s.data = nil
 	s.command = 0
@@ -81,6 +89,8 @@ func (s *session) clear() {
 	s.leftToRead = 0
 }
 
+// u2fHIDState holds the global state of the U2FHID token, keeping track of whether it is still accumulating messages,
+// all the outbound messages, all the sessions.
 type u2fHIDState struct {
 	outboundMsgs      [][]byte
 	lastOutboundIndex int
@@ -89,6 +99,7 @@ type u2fHIDState struct {
 	lastChannelID     uint32
 }
 
+// clear deletes the last channel id session, and sets outbound messages and its index, and channel id to zero.s
 func (u *u2fHIDState) clear() {
 	u.sessions[state.lastChannelID].clear()
 	u.outboundMsgs = nil

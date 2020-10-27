@@ -12,33 +12,40 @@ const (
 	continuationPacketDataLen = 59
 )
 
-// base size = 5, data size = 64 - 5 = 59
+// continuationPacket is a U2FHID message packet for which the command byte has the seventh bit not set.
+// Base size = 5, data size = 64 - 5 = 59.
 type continuationPacket struct {
 	ChannelID      [4]byte
 	SequenceNumber uint8
 	Data           []byte
 }
 
+// ChannelBytes implements u2fPacket interface.
 func (i continuationPacket) ChannelBytes() [4]byte {
 	return i.ChannelID
 }
 
+// Command implements u2fPacket interface.
 func (i continuationPacket) Command() uint8 {
 	return 0
 }
 
+// Length implements u2fPacket interface.
 func (i continuationPacket) Length() uint16 {
 	return 0
 }
 
+// Count implements u2fPacket interface.
 func (i continuationPacket) Count() uint16 {
 	return uint16(i.SequenceNumber)
 }
 
+// Channel implements u2fPacket interface.
 func (i continuationPacket) Channel() uint32 {
 	return binary.BigEndian.Uint32(i.ChannelID[:])
 }
 
+// String implements fmt.Stringer interface.
 func (i continuationPacket) String() string {
 	s := strings.Builder{}
 	s.WriteString(fmt.Sprintf("channel id: %v, ", i.ChannelID))
@@ -47,6 +54,7 @@ func (i continuationPacket) String() string {
 	return s.String()
 }
 
+// Bytes returns the byte slice representation of a continuation packet.
 func (i continuationPacket) Bytes() []byte {
 	s := struct {
 		ChannelID      [4]byte
@@ -65,6 +73,7 @@ func (i continuationPacket) Bytes() []byte {
 	return append(b.Bytes(), i.Data...)
 }
 
+// parseContinuationPkt parses msg as a continuation packet, and returns a continuationPacket instance.
 // FIDO U2F HID Protocol Specification, pg 4, "2.4 Message- and packet structure"
 func parseContinuationPkt(msg []byte) continuationPacket {
 	i := continuationPacket{
@@ -78,6 +87,7 @@ func parseContinuationPkt(msg []byte) continuationPacket {
 	return i
 }
 
+// initPacket is a U2FHID message packet for which the command byte has the seventh bit set.
 type initPacket struct {
 	ChannelID     [4]byte
 	Cmd           u2fHIDCommand
@@ -85,26 +95,32 @@ type initPacket struct {
 	Data          []byte
 }
 
+// ChannelBytes implements u2fPacket interface.
 func (i initPacket) ChannelBytes() [4]byte {
 	return i.ChannelID
 }
 
+// Command implements u2fPacket interface.
 func (i initPacket) Command() uint8 {
 	return uint8(i.Cmd)
 }
 
+// Length implements u2fPacket interface.
 func (i initPacket) Length() uint16 {
 	return i.PayloadLength
 }
 
+// Count implements u2fPacket interface.
 func (i initPacket) Count() uint16 {
 	return 0
 }
 
+// Channel implements u2fPacket interface.
 func (i initPacket) Channel() uint32 {
 	return binary.BigEndian.Uint32(i.ChannelID[:])
 }
 
+// String implements fmt.Stringer interface.
 func (i initPacket) String() string {
 	s := strings.Builder{}
 	s.WriteString(fmt.Sprintf("channel id: %v, ", i.ChannelID))
@@ -114,6 +130,7 @@ func (i initPacket) String() string {
 	return s.String()
 }
 
+// parseInitPkt parses msg as a init packet, and returns a initPacket instance.
 // FIDO U2F HID Protocol Specification, pg 4, "2.4 Message- and packet structure"
 func parseInitPkt(msg []byte) initPacket {
 	i := initPacket{
@@ -129,12 +146,13 @@ func parseInitPkt(msg []byte) initPacket {
 	return i
 }
 
+// isInitPkt returns true if the seventh bit of cmd is set.
 // FIDO U2F HID Protocol Specification, pg 4, "2.4 Message- and packet structure"
-// A packet is an Init one if bit 7 is set.
 func isInitPkt(cmd uint8) bool {
 	return cmd>>7 == 1
 }
 
+// genPackets generates response packets for msg, command cmd and channel id chanID.
 func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error) {
 	numPktsNoInitial := numPackets(len(msg) - 64) // we exclude a packet, which will be built separately
 

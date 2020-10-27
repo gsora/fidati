@@ -8,22 +8,22 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[None-0]
-	_ = x[InvalidCmd-1]
-	_ = x[InvalidPar-2]
-	_ = x[InvalidLen-3]
-	_ = x[InvalidSeq-4]
-	_ = x[MsgTimeout-5]
-	_ = x[ChannelBusy-6]
-	_ = x[LockRequired-10]
-	_ = x[InvalidCid-11]
-	_ = x[Other-127]
+	_ = x[none-0]
+	_ = x[invalidCmd-1]
+	_ = x[invalidPar-2]
+	_ = x[invalidLen-3]
+	_ = x[invalidSeq-4]
+	_ = x[msgTimeout-5]
+	_ = x[channelBusy-6]
+	_ = x[lockRequired-10]
+	_ = x[invalidCid-11]
+	_ = x[other-127]
 }
 
 const (
-	_u2fError_name_0 = "NoneInvalidCmdInvalidParInvalidLenInvalidSeqMsgTimeoutChannelBusy"
-	_u2fError_name_1 = "LockRequiredInvalidCid"
-	_u2fError_name_2 = "Other"
+	_u2fError_name_0 = "noneinvalidCmdinvalidParinvalidLeninvalidSeqmsgTimeoutchannelBusy"
+	_u2fError_name_1 = "lockRequiredinvalidCid"
+	_u2fError_name_2 = "other"
 )
 
 var (

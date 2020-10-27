@@ -1,9 +1,8 @@
 package u2fhid
 
+// initResponse represents the standard response to a cmdInit command.
 type initResponse struct {
-	ChannelID          [4]byte
-	Command            uint8
-	Count              [2]byte
+	standardResponse
 	Nonce              [8]byte
 	ProtocolVersion    uint8
 	MajorDeviceVersion uint8
@@ -12,20 +11,7 @@ type initResponse struct {
 	Capabilities       uint8
 }
 
-// len = 7
-type pingResponse struct {
-	ChannelID [4]byte
-	Command   uint8
-	Count     [2]byte
-}
-
-// len = 7
-type msgResponse struct {
-	ChannelID [4]byte
-	Command   uint8
-	Count     [2]byte
-}
-
+// standardResponse is the response header used by all response command.
 type standardResponse struct {
 	ChannelID [4]byte
 	Command   uint8
