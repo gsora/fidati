@@ -33,10 +33,10 @@ func handleAuthenticate(req Request) (Response, error) {
 	appParam := req.Data[32:64]
 	khLen := req.Data[64]
 
-	ulog.Printf("challenge len %d, app param len %d, khlen %d", len(challengeParam), len(appParam), khLen)
+	log.Printf("challenge len %d, app param len %d, khlen %d", len(challengeParam), len(appParam), khLen)
 
 	if len(req.Data) != int(minimumLen+khLen) {
-		ulog.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
+		log.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
 		// total data len must be equal to minimumLen + khLen (headers + length of the key handle)
 		return Response{}, errWrongLength
 	}
@@ -46,11 +46,11 @@ func handleAuthenticate(req Request) (Response, error) {
 	copy(khKey[:], kh)
 
 	ki, err := ks.item(khKey)
-	ulog.Println("query item ", ki, err)
+	log.Println("query item ", ki, err)
 
 	if controlByte == controlCheckOnly {
 		if err == nil { // key found
-			ulog.Println("key found")
+			log.Println("key found")
 			return Response{
 				StatusCode: errConditionNotSatisfied.Bytes(),
 			}, nil
@@ -60,7 +60,7 @@ func handleAuthenticate(req Request) (Response, error) {
 			StatusCode: errWrongData.Bytes(),
 		}, nil
 	} else if err != nil {
-		ulog.Println("some kind of error", err)
+		log.Println("some kind of error", err)
 		return Response{}, err
 	}
 

@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/gsora/fidati/leds"
 )
 
 const (
@@ -67,7 +70,7 @@ func (i continuationPacket) Bytes() []byte {
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.BigEndian, s)
 	if err != nil {
-		panic(fmt.Sprintf("cannot format continuationPacket, %s", err.Error()))
+		leds.Panic(fmt.Sprintf("cannot format continuationPacket, %s", err.Error()))
 	}
 
 	return append(b.Bytes(), i.Data...)
@@ -158,7 +161,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 
 	ret := make([][]byte, 0, numPktsNoInitial+1)
 
-	ulog.Println("expected number of packets:", numPktsNoInitial+1)
+	log.Println("expected number of packets:", numPktsNoInitial+1)
 
 	sequence := 0
 	for i, packetPayload := range split(initPacketDataLen, continuationPacketDataLen, msg) {
@@ -170,7 +173,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 			}
 
 			binary.BigEndian.PutUint16(u.Count[:], uint16(len(msg)))
-			ulog.Println("length", uint16(len(msg)), "bytes", u.Count)
+			log.Println("length", uint16(len(msg)), "bytes", u.Count)
 			err := binary.Write(b, binary.LittleEndian, u)
 			if err != nil {
 				return nil, fmt.Errorf("cannot serialize msg payload, %w", err)
@@ -179,7 +182,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 			initPingMsg := append(b.Bytes(), packetPayload...)
 			ret = append(ret, initPingMsg)
 
-			ulog.Println("built packet", i)
+			log.Println("built packet", i)
 			continue
 		}
 
@@ -188,7 +191,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 		cc.ChannelID = chanID
 		cc.Data = packetPayload
 		ret = append(ret, cc.Bytes())
-		ulog.Println("built packet", i)
+		log.Println("built packet", i)
 		sequence++
 	}
 

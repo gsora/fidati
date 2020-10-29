@@ -1,6 +1,9 @@
 package u2ftoken
 
-import "errors"
+import (
+	"errors"
+	"log"
+)
 
 // a ready-made instance of the errConditionNotSatisfied error.
 var notSatisfied = errorResponse(errConditionNotSatisfied).Bytes()
@@ -10,7 +13,7 @@ func HandleMessage(req Request) []byte {
 	var resp Response
 	var handleErr error
 
-	ulog.Printf("message type: %s\n", req.Command)
+	log.Printf("message type: %s\n", req.Command)
 
 	switch req.Command {
 	case Version:
@@ -28,18 +31,18 @@ func HandleMessage(req Request) []byte {
 
 		if !errors.As(handleErr, &err) {
 			// this is a strange error, log it and return ErrConditionNotSatisfied
-			ulog.Println("non-u2f error detected:", handleErr)
+			log.Println("non-u2f error detected:", handleErr)
 			return notSatisfied
 		}
 
 		return errorResponse(err).Bytes()
 	}
 
-	ulog.Println("response len: ", len(resp.Bytes()))
+	log.Println("response len: ", len(resp.Bytes()))
 
 	respBytes, err := buildResponse(req, resp)
 	if err != nil {
-		ulog.Println("cannot build response:", err)
+		log.Println("cannot build response:", err)
 		return notSatisfied
 	}
 

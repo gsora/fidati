@@ -17,12 +17,12 @@ func _() {
 }
 
 const (
-	_errorCode_name_0 = "ErrWrongLength"
-	_errorCode_name_1 = "ErrConditionNotSatisfied"
-	_errorCode_name_2 = "ErrWrongData"
-	_errorCode_name_3 = "ErrInsNotSupported"
-	_errorCode_name_4 = "ErrClaNotSupported"
-	_errorCode_name_5 = "NoError"
+	_errorCode_name_0 = "errWrongLength"
+	_errorCode_name_1 = "errConditionNotSatisfied"
+	_errorCode_name_2 = "errWrongData"
+	_errorCode_name_3 = "errInsNotSupported"
+	_errorCode_name_4 = "errClaNotSupported"
+	_errorCode_name_5 = "noError"
 )
 
 func (i errorCode) String() string {

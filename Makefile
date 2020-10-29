@@ -12,13 +12,9 @@ GOENV := GO_EXTLINK_ENABLED=0 CGO_ENABLED=0 GOOS=tamago GOARM=7 GOARCH=arm
 TEXT_START := 0x80010000 # ramStart (defined in imx6/imx6ul/memory.go) + 0x10000
 LDFLAGS = -s -w -T $(TEXT_START) -E _rt0_arm_tamago -R 0x1000 -X 'main.Build=${BUILD}' -X 'main.Revision=${REV}'
 GOFLAGS = -tags ${TARGET} -ldflags "${LDFLAGS}"
-QEMU ?= qemu-system-arm -machine mcimx6ul-evk -cpu cortex-a7 -m 512M \
-        -nographic -monitor none -serial null -serial stdio -net none \
-        -semihosting -d unimp
-
 SHELL = /bin/bash
 
-.PHONY: clean qemu qemu-gdb install
+.PHONY: clean install
 
 #### primary targets ####
 
@@ -67,12 +63,6 @@ clean:
 	rm -f $(APP)
 	@rm -fr $(APP).bin $(APP).imx $(APP)-signed.imx $(APP).csf $(APP).dcd
 
-qemu: $(APP)
-	$(QEMU) -kernel $(APP)
-
-qemu-gdb: $(APP)
-	$(QEMU) -kernel $(APP) -S -s
-
 install: $(APP)
 	@ssh usbarmory@10.0.0.1 sudo rm /boot/tamago
 	@scp $(APP) usbarmory@10.0.0.1:/boot/tamago
@@ -80,7 +70,7 @@ install: $(APP)
 
 #### dependencies ####
 $(APP): check_tamago
-	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP}
+	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
 
 $(APP).dcd: check_tamago
 $(APP).dcd: GOMODCACHE=$(shell ${TAMAGO} env GOMODCACHE)

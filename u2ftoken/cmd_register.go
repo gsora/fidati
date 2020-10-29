@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"log"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 
 func handleRegister(req Request) (Response, error) {
 	if len(req.Data) != expectedDataLen {
-		ulog.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
+		log.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
 		return Response{}, errWrongLength
 	}
 
@@ -54,7 +55,7 @@ func handleRegister(req Request) (Response, error) {
 		return Response{}, err
 	}
 
-	ulog.Println("sign len:", len(sign))
+	log.Println("sign len:", len(sign))
 	resp.Write(sign)
 	return Response{
 		Data:       resp.Bytes(),
