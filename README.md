@@ -25,6 +25,10 @@ A persistence strategy will be implemented sometime soon.
 
 You can run `fidati` with or without a bootloader.
 
+By default the project `Makefile` produces a binary with logging disabled.
+
+To enable logging append `TARGET="'usbarmory debug'"` to the `make` parameters.
+
 ### Booting via U-Boot
 
 ```
@@ -47,6 +51,12 @@ $ make imx
 This command will produce a i.MX native image, `fidati.imx`, which can be flashed to either the internal Armory eMMC or a microSD.
 
 Refer to [these instructions](https://github.com/f-secure-foundry/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-imx-native-images) for further instructions.
+
+## Using as a library
+
+`fidati` can be used as a library, by importing the `github.com/gsora/fidati` package and invoking the `ConfigureUSB()` function.
+
+See `firmware/main.go` and `firmware/usb.go` for an example.
 
 ## Technical details
 
