@@ -73,7 +73,7 @@ $(APP): check_tamago
 	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
 
 test: check_tamago
-	$(GOENV) $(TAMAGO) test  ${GOFLAGS} ./...
+	$(TAMAGO) test ./...
 
 $(APP).dcd: check_tamago
 $(APP).dcd: GOMODCACHE=$(shell ${TAMAGO} env GOMODCACHE)
