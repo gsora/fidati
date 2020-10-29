@@ -52,7 +52,7 @@ This command will produce a i.MX native image, `fidati.imx`, which can be flashe
 
 Refer to [these instructions](https://github.com/f-secure-foundry/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-imx-native-images) for further instructions.
 
-## Using as a library
+## Usage as a library
 
 `fidati` can be used as a library, by importing the `github.com/gsora/fidati` package and invoking the `ConfigureUSB()` function.
 
