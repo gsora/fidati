@@ -14,7 +14,7 @@ LDFLAGS = -s -w -T $(TEXT_START) -E _rt0_arm_tamago -R 0x1000 -X 'main.Build=${B
 GOFLAGS = -tags ${TARGET} -ldflags "${LDFLAGS}"
 SHELL = /bin/bash
 
-.PHONY: clean install
+.PHONY: clean install test
 
 #### primary targets ####
 
@@ -71,6 +71,9 @@ install: $(APP)
 #### dependencies ####
 $(APP): check_tamago
 	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
+
+test: check_tamago
+	$(GOENV) $(TAMAGO) test  ${GOFLAGS} ./...
 
 $(APP).dcd: check_tamago
 $(APP).dcd: GOMODCACHE=$(shell ${TAMAGO} env GOMODCACHE)
