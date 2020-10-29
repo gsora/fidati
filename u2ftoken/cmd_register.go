@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"log"
+
+	"github.com/gsora/fidati/storage"
 )
 
 const (
@@ -23,7 +25,7 @@ func handleRegister(req Request) (Response, error) {
 	challengeParam := req.Data[:32]
 	appParam := req.Data[32:]
 
-	newKey, err := ks.newKeyItem(appParam)
+	newKey, err := storage.Storage.NewKeyItem(appParam)
 	if err != nil {
 		return Response{}, err
 	}
