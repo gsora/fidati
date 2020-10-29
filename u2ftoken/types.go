@@ -5,13 +5,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
-	"log"
-	"os"
+
+	"github.com/gsora/fidati/leds"
 )
 
 var (
-	ulog = log.New(os.Stdout, "u2ftoken :: ", log.Lshortfile)
-
 	//PSA: both of those values are filled in this package's init.go
 
 	// X.509 attestation certificate, sent along in registration requests
@@ -146,7 +144,7 @@ func ParseRequest(req []byte) (Request, error) {
 	neBytes := req[(5 + dataLen):]
 
 	if len(neBytes) == 3 {
-		panic(fmt.Sprintf("Ne bytes are %d long while we were expecting 3 bytes", len(neBytes)))
+		leds.Panic(fmt.Sprintf("Ne bytes are %d long while we were expecting 3 bytes", len(neBytes)))
 	}
 
 	ret.MaxResponseBytes = binary.BigEndian.Uint16(neBytes)

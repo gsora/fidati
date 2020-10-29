@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"runtime"
+
+	"github.com/gsora/fidati/leds"
 
 	"github.com/f-secure-foundry/tamago/soc/imx6"
 )
@@ -25,7 +26,7 @@ func init() {
 		Revision, Build)
 
 	log.SetFlags(log.Lshortfile)
-	log.SetOutput(os.Stdout)
+	enableLogs()
 
 	model := imx6.Model()
 	_, family, revMajor, revMinor := imx6.SiliconVersion()
@@ -42,6 +43,8 @@ func init() {
 
 	log.Printf("imx6_soc: %s (%#x, %d.%d) @ %d MHz - native:%v",
 		model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
+
+	leds.StartBlink()
 }
 
 func main() {

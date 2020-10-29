@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gsora/fidati/leds"
 )
 
 // u2fHIDReport is a byte slice holding a standard U2F HID report.
@@ -14,7 +16,7 @@ func (r *u2fHIDReport) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, r)
 	if err != nil {
-		panic(fmt.Errorf("cannot format u2f hid report, %w", err).Error())
+		leds.Panic(fmt.Sprintf("cannot format u2f hid report, %v", err))
 	}
 	return buf.Bytes()
 }

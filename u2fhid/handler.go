@@ -6,17 +6,14 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 
-	"github.com/f-secure-foundry/tamago/soc/imx6"
+	"github.com/gsora/fidati/leds"
 )
 
 var (
 	state = &u2fHIDState{
 		sessions: map[uint32]*session{},
 	}
-
-	ulog = log.New(os.Stdout, "u2fhid :: ", log.Lshortfile)
 )
 
 // zeroPad pads b with as many zeroes as needed to have len(b) == 64.
@@ -40,7 +37,7 @@ func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 	}
 
 	if state.lastOutboundIndex == 0 {
-		ulog.Println("found", len(state.outboundMsgs), "outbound messages")
+		log.Println("found", len(state.outboundMsgs), "outbound messages")
 	}
 
 	if len(state.outboundMsgs) == 1 {
@@ -48,14 +45,14 @@ func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 		binary.Write(b, binary.LittleEndian, zeroPad(state.outboundMsgs[state.lastOutboundIndex]))
 
 		res = b.Bytes()
-		ulog.Println(res)
-		ulog.Println("finished processing messages, clearing buffers")
+		log.Println(res)
+		log.Println("finished processing messages, clearing buffers")
 		state.clear()
 		return
 	}
 
 	if state.lastOutboundIndex == len(state.outboundMsgs) {
-		ulog.Println("finished processing messages, clearing buffers")
+		log.Println("finished processing messages, clearing buffers")
 		state.clear()
 		return
 	}
@@ -66,7 +63,7 @@ func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 
 	res = b.Bytes()
 
-	ulog.Println("processed message", state.lastOutboundIndex)
+	log.Println("processed message", state.lastOutboundIndex)
 
 	return
 }
@@ -80,7 +77,7 @@ func (*Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 
 	msgs, parseErr := parseMsg(buf)
 	if parseErr != nil {
-		ulog.Println(parseErr)
+		log.Println(parseErr)
 		state.clear()
 		return
 	}
@@ -93,14 +90,6 @@ func (*Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 // parseMsg parses msg and constructs a slice of messages ready to be sent over the wire.
 // Each response message is exactly 64 bytes in length.
 func parseMsg(msg []byte) ([][]byte, error) {
-	// TODO: handle panic-ing better than this...
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("rebooting because of panic:", r)
-			imx6.Reboot()
-		}
-	}()
-
 	if len(msg) != 64 { // something's wrong
 		return nil, fmt.Errorf("wrong message length, expected 64 but got %d", len(msg))
 	}
@@ -108,10 +97,10 @@ func parseMsg(msg []byte) ([][]byte, error) {
 	cmd := msg[4]
 	isInit := isInitPkt(cmd)
 
-	ulog.Println("msg ", msg)
+	log.Println("msg ", msg)
 
 	if isInit {
-		ulog.Println("found init packet")
+		log.Println("found init packet")
 		ip := parseInitPkt(msg)
 
 		s, ok := state.sessions[ip.Channel()]
@@ -119,7 +108,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 			s = &session{}
 		}
 
-		ulog.Println("command:", ip.Cmd.String())
+		log.Println("command:", ip.Cmd.String())
 
 		s.command = ip.Cmd
 		s.total = uint64(ip.PayloadLength)
@@ -136,7 +125,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 
 		state.accumulatingMsgs = true
 	} else {
-		ulog.Println("found continuation packet")
+		log.Println("found continuation packet")
 		cp := parseContinuationPkt(msg)
 
 		session, ok := state.sessions[cp.Channel()]
@@ -162,7 +151,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 			session.leftToRead -= uint64(len(cp.Data))
 		}
 
-		ulog.Printf("read new %d bytes, last size %d, new size %d, total expected size %d", len(cp.Data), lastSize, len(session.data), session.total)
+		log.Printf("read new %d bytes, last size %d, new size %d, total expected size %d", len(cp.Data), lastSize, len(session.data), session.total)
 
 		if uint64(len(session.data)) > session.total {
 			return nil, fmt.Errorf("read %d bytes while expecting %d", len(session.data), session.total)
@@ -172,7 +161,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 			return nil, nil // we still need more data
 		}
 
-		ulog.Printf("finished reading data for channel 0x%X, total bytes %d", cp.Channel(), len(session.data))
+		log.Printf("finished reading data for channel 0x%X, total bytes %d", cp.Channel(), len(session.data))
 		return packetBuilder(session, cp)
 	}
 
@@ -217,10 +206,10 @@ func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
 // broadcastReq responds to broadcast messages, sent with channel id [255, 255, 255, 255].
 func broadcastReq(ip initPacket) []byte {
 	if ip.Cmd != cmdInit {
-		panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
+		leds.Panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
 	}
 
-	ulog.Println("found cmdInit on broadcast channel")
+	log.Println("found cmdInit on broadcast channel")
 
 	b := new(bytes.Buffer)
 	u := initResponse{
@@ -240,16 +229,14 @@ func broadcastReq(ip initPacket) []byte {
 	binary.BigEndian.PutUint16(u.Count[:], 17)
 	err := binary.Write(b, binary.LittleEndian, u)
 	if err != nil {
-		panic(
-			fmt.Sprintf("cannot serialize initResponse: %s", err.Error()),
-		)
+		leds.Panic(fmt.Sprintf("cannot serialize initResponse: %s", err.Error()))
 	}
 	return b.Bytes()
 }
 
 // packetBuilder builds response packages for a given session, depending on session.command.
 func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
-	ulog.Println("message", u2fHIDCommand(pkt.Command()))
+	log.Println("message", u2fHIDCommand(pkt.Command()))
 	switch session.command {
 	case cmdInit:
 		ip, ok := pkt.(initPacket)
@@ -285,7 +272,7 @@ func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 		state.lastChannelID = pkt.Channel()
 		return pkts, nil
 	default:
-		ulog.Printf("command %d not found, sending error payload", session.command)
+		log.Printf("command %d not found, sending error payload", session.command)
 		return generateError(invalidCmd, session, pkt), nil
 	}
 }

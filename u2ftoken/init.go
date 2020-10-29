@@ -7,8 +7,9 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 
+	"github.com/gsora/fidati/leds"
 	// statik generated files
-	_ "github.com/f-secure-foundry/tamago-example/u2ftoken/certs"
+	_ "github.com/gsora/fidati/u2ftoken/certs"
 	"github.com/rakyll/statik/fs"
 )
 
@@ -21,27 +22,27 @@ func init() {
 func readCertPrivkey() {
 	statikFS, err := fs.New()
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 
 	aCert, err := statikFS.Open("/attestation_certificate.pem")
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 
 	aPk, err := statikFS.Open("/ecdsa_privkey.pem")
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 
 	aCertBytes, err := ioutil.ReadAll(aCert)
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 
 	aPkBytes, err := ioutil.ReadAll(aPk)
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 
 	certPem, _ := pem.Decode(aCertBytes)
@@ -51,6 +52,6 @@ func readCertPrivkey() {
 
 	attestationPrivkey, err = x509.ParseECPrivateKey(pkPem.Bytes)
 	if err != nil {
-		panic(err)
+		leds.Panic(err)
 	}
 }

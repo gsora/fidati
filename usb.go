@@ -1,14 +1,14 @@
-package main
+package fidati
 
 import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
-
-	"github.com/f-secure-foundry/tamago-example/u2fhid"
+	"github.com/gsora/fidati/u2fhid"
 )
 
 const (
@@ -43,45 +43,16 @@ func (d *hidDescriptor) bytes() []byte {
 	return buf.Bytes()
 }
 
-// configureDevice configures device to redirect interface endpoints to u2fHandler handling functions.
-// By default, this function configures a Configuration Descriptor with a single Interface descriptor as the first one,
-//  along with a HID device descriptor.
-func configureDevice(device *usb.Device, u2fHandler *u2fhid.Handler) {
-	// Supported Language Code Zero: English
-	device.SetLanguageCodes([]uint16{0x0409})
-
-	// device descriptor
-	device.Descriptor = &usb.DeviceDescriptor{}
-	device.Descriptor.SetDefaults()
-
-	// HID devices sets those in the Interface descriptor.
-	device.Descriptor.DeviceClass = 0x0
-	device.Descriptor.DeviceSubClass = 0x0
-	device.Descriptor.DeviceProtocol = 0x0
-
-	// http://pid.codes/1209/2702/
-	// Standard USB Armory {Vendor,Product}ID
-	device.Descriptor.VendorId = 0x1209
-	device.Descriptor.ProductId = 0x2702
-
-	device.Descriptor.Device = 0x0001
-
-	iManufacturer, err := device.AddString(`gsora`)
-	notErr(err)
-	device.Descriptor.Manufacturer = iManufacturer
-
-	iProduct, err := device.AddString(`fidati`)
-	notErr(err)
-	device.Descriptor.Product = iProduct
-
-	iSerial, err := device.AddString(`0.42`)
-	notErr(err)
-	device.Descriptor.SerialNumber = iSerial
-
+// configureDevice configures device to use hidSetup Setup function, and adds an HID InterfaceDescriptor to conf
+// along with the needed Endpoints.
+func configureDevice(device *usb.Device, conf *usb.ConfigurationDescriptor, u2fHandler *u2fhid.Handler) error {
 	device.Setup = hidSetup(device)
 
-	conf := addConfiguration(device)
-	id := addInterface(device, conf)
+	id, err := addInterface(device, conf)
+	if err != nil {
+		return fmt.Errorf("cannot add U2F USB Interface, %w", err)
+	}
+
 	endpoints := addEndpoints(id)
 	endpoints.in.Function = u2fHandler.Tx
 	endpoints.out.Function = u2fHandler.Rx
@@ -92,19 +63,12 @@ func configureDevice(device *usb.Device, u2fHandler *u2fhid.Handler) {
 	device.Qualifier = &usb.DeviceQualifierDescriptor{}
 	device.Qualifier.SetDefaults()
 	device.Qualifier.NumConfigurations = uint8(len(device.Configurations))
-}
 
-func addConfiguration(device *usb.Device) *usb.ConfigurationDescriptor {
-	cd := &usb.ConfigurationDescriptor{}
-	cd.SetDefaults()
-	cd.Attributes = 160
-	device.AddConfiguration(cd)
-
-	return cd
+	return nil
 }
 
 // addInterface adds a Interface Descriptor with 2 endpoints, with HID interface class.
-func addInterface(device *usb.Device, conf *usb.ConfigurationDescriptor) *usb.InterfaceDescriptor {
+func addInterface(device *usb.Device, conf *usb.ConfigurationDescriptor) (*usb.InterfaceDescriptor, error) {
 	id := &usb.InterfaceDescriptor{}
 	id.SetDefaults()
 
@@ -115,10 +79,12 @@ func addInterface(device *usb.Device, conf *usb.ConfigurationDescriptor) *usb.In
 
 	var err error
 	id.Interface, err = device.AddString("fidati interface descriptor")
-	notErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	conf.AddInterface(id)
-	return id
+	return id, nil
 }
 
 // endpoints is a convenience struct, holds input and output endpoints.
@@ -199,23 +165,17 @@ func hidSetup(device *usb.Device) usb.SetupFunction {
 	}
 }
 
-func startUSB() {
-	device := &usb.Device{}
-	u2f := &u2fhid.Handler{}
+// DefaultConfiguration returns a usb.ConfigurationDescriptor ready to be used for ConfigureUSB.
+func DefaultConfiguration() usb.ConfigurationDescriptor {
+	cd := usb.ConfigurationDescriptor{}
+	cd.SetDefaults()
+	cd.Attributes = 160
 
-	configureDevice(device, u2f)
-
-	usb.USB1.Init()
-	usb.USB1.DeviceMode()
-	usb.USB1.Reset()
-
-	// never returns
-	usb.USB1.Start(device)
+	return cd
 }
 
-// since we're in a critical configuration phase, panic on error.
-func notErr(e error) {
-	if e != nil {
-		panic(e)
-	}
+// ConfigureUSB configures device and config to be used as a FIDO2 U2F token.
+func ConfigureUSB(config *usb.ConfigurationDescriptor, device *usb.Device) error {
+	u2fHandler := &u2fhid.Handler{}
+	return configureDevice(device, config, u2fHandler)
 }

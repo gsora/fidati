@@ -1,4 +1,4 @@
-module github.com/f-secure-foundry/tamago-example
+module github.com/gsora/fidati
 
 go 1.15
 

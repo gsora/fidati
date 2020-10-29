@@ -1,6 +1,10 @@
 package u2fhid
 
-import "github.com/f-secure-foundry/tamago-example/u2ftoken"
+import (
+	"log"
+
+	"github.com/gsora/fidati/u2ftoken"
+)
 
 // handleMsg handles cmdMsg commands.
 func handleMsg(session *session, pkt u2fPacket) ([][]byte, error) {
@@ -9,7 +13,7 @@ func handleMsg(session *session, pkt u2fPacket) ([][]byte, error) {
 		return nil, err
 	}
 
-	ulog.Printf("%+v\n", req)
+	log.Printf("%+v\n", req)
 
 	resp := u2ftoken.HandleMessage(req)
 

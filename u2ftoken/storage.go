@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
+
+	"github.com/gsora/fidati/leds"
 )
 
 // global keyStorage instance, will be removed as soon as we have a proper system to
@@ -32,7 +34,7 @@ func (ks *keyStorage) Bytes() []byte {
 	enc := gob.NewEncoder(ret)
 
 	if err := enc.Encode(ks); err != nil {
-		panic(fmt.Sprintf("cannot encode keyStorage: %s", err.Error()))
+		leds.Panic(fmt.Sprintf("cannot encode keyStorage: %s", err.Error()))
 	}
 
 	return ret.Bytes()
