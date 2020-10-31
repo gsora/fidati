@@ -73,7 +73,7 @@ $(APP): check_tamago
 	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
 
 test: check_tamago
-	$(TAMAGO) test ./...
+	$(TAMAGO) test $(shell go list ./... | sed -E '/(fidati|firmware|cmd|cert|certs)$$/d')
 
 $(APP).dcd: check_tamago
 $(APP).dcd: GOMODCACHE=$(shell ${TAMAGO} env GOMODCACHE)
