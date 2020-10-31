@@ -65,6 +65,9 @@ type KeyItem struct {
 
 // NewKeyItem initializes a new keyItem for a given appID, and stores it into ks.
 func (ks *KeyStorage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
+	if appID == nil || len(appID) == 0 {
+		return nil, errors.New("appID can't be empty")
+	}
 	ki = &KeyItem{}
 
 	id := []byte{}
