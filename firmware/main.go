@@ -55,7 +55,7 @@ func main() {
 
 	go rebootWatcher()
 
-	startUSB()
+	startUSB(catchPanic)
 }
 
 func rebootWatcher() {

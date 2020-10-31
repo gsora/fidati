@@ -39,8 +39,9 @@ func baseConfiguration(device *usb.Device) {
 	device.Descriptor.SerialNumber = iSerial
 }
 
-func startUSB() {
+func startUSB(panicHandler func()) {
 	device := &usb.Device{}
+	fidati.U2FHandler.PanicHandler = panicHandler
 
 	conf := fidati.DefaultConfiguration()
 

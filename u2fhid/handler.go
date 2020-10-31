@@ -29,7 +29,10 @@ func zeroPad(b []byte) []byte {
 
 // Tx handles USB endpoint data outtake.
 // res will always not be nil.
-func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
+func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
+	pa := h.handlePanic()
+	defer pa()
+
 	if state.outboundMsgs == nil || state.accumulatingMsgs {
 		return
 	}
@@ -68,7 +71,10 @@ func (*Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 
 // Rx handles data intake, parses messages and builds responses.
 // res will always be nil.
-func (*Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
+func (h *Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
+	pa := h.handlePanic()
+	defer pa()
+
 	if buf == nil {
 		return
 	}

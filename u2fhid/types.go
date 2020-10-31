@@ -59,7 +59,20 @@ const (
 )
 
 // Handler holds methods for sending and receiving packets.
-type Handler struct{}
+type Handler struct {
+	// PanicHandler is a function which gracefully handles panic() calls.
+	// It usually calls recover().
+	PanicHandler func()
+}
+
+// handlePanic returns PanicHandler if defined, otherwise it's no-op.
+func (h *Handler) handlePanic() func() {
+	if h.PanicHandler == nil {
+		return func() {}
+	}
+
+	return h.PanicHandler
+}
 
 // u2fPacket is implemented by U2F HID packets, and exposes methods that must be implemented
 // to retrieve channel id, command, length, packet count and so on.

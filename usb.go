@@ -11,6 +11,9 @@ import (
 	"github.com/gsora/fidati/u2fhid"
 )
 
+// U2FHandler is the default U2F HID packets handler.
+var U2FHandler = &u2fhid.Handler{}
+
 const (
 	hidRequestSetIdle           = 10
 	hidRequestTypeGetDescriptor = 0x21
@@ -176,6 +179,5 @@ func DefaultConfiguration() usb.ConfigurationDescriptor {
 
 // ConfigureUSB configures device and config to be used as a FIDO2 U2F token.
 func ConfigureUSB(config *usb.ConfigurationDescriptor, device *usb.Device) error {
-	u2fHandler := &u2fhid.Handler{}
-	return configureDevice(device, config, u2fHandler)
+	return configureDevice(device, config, U2FHandler)
 }
