@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-
-	"github.com/gsora/fidati/leds"
 )
 
 const (
@@ -70,7 +68,7 @@ func (i continuationPacket) Bytes() []byte {
 	b := new(bytes.Buffer)
 	err := binary.Write(b, binary.BigEndian, s)
 	if err != nil {
-		leds.Panic(fmt.Sprintf("cannot format continuationPacket, %s", err.Error()))
+		panic(fmt.Sprintf("cannot format continuationPacket, %s", err.Error()))
 	}
 
 	return append(b.Bytes(), i.Data...)

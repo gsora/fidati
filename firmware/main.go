@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"runtime/debug"
 
 	"github.com/gsora/fidati/leds"
 
@@ -48,6 +49,8 @@ func init() {
 }
 
 func main() {
+	defer catchPanic()
+
 	log.Println(banner)
 
 	go rebootWatcher()
@@ -71,5 +74,17 @@ func rebootWatcher() {
 		}
 
 		buf[0] = 0
+	}
+}
+
+// catchPanic catches every panic(), sets the LEDs into error mode and prints the stacktrace.
+func catchPanic() {
+	if r := recover(); r != nil {
+		leds.Panic()
+		fmt.Printf("panic: %v\n\n", r)
+		fmt.Println(string(debug.Stack()))
+
+		for {
+		} // stuck here forever!
 	}
 }

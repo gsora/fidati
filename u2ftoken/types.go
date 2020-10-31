@@ -5,8 +5,6 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
-
-	"github.com/gsora/fidati/leds"
 )
 
 var (
@@ -144,7 +142,7 @@ func ParseRequest(req []byte) (Request, error) {
 	neBytes := req[(5 + dataLen):]
 
 	if len(neBytes) == 3 {
-		leds.Panic(fmt.Sprintf("Ne bytes are %d long while we were expecting 3 bytes", len(neBytes)))
+		panic(fmt.Sprintf("Ne bytes are %d long while we were expecting 3 bytes", len(neBytes)))
 	}
 
 	ret.MaxResponseBytes = binary.BigEndian.Uint16(neBytes)

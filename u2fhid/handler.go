@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-
-	"github.com/gsora/fidati/leds"
 )
 
 var (
@@ -206,7 +204,7 @@ func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
 // broadcastReq responds to broadcast messages, sent with channel id [255, 255, 255, 255].
 func broadcastReq(ip initPacket) []byte {
 	if ip.Cmd != cmdInit {
-		leds.Panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
+		panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
 	}
 
 	log.Println("found cmdInit on broadcast channel")
@@ -229,7 +227,7 @@ func broadcastReq(ip initPacket) []byte {
 	binary.BigEndian.PutUint16(u.Count[:], 17)
 	err := binary.Write(b, binary.LittleEndian, u)
 	if err != nil {
-		leds.Panic(fmt.Sprintf("cannot serialize initResponse: %s", err.Error()))
+		panic(fmt.Sprintf("cannot serialize initResponse: %s", err.Error()))
 	}
 	return b.Bytes()
 }

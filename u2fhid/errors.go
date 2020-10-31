@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
-	"github.com/gsora/fidati/leds"
 )
 
 // u2fError represent some kind of error happened during the u2fhid processing.
@@ -56,7 +54,7 @@ func generateError(code u2fError, session *session, pkt u2fPacket) [][]byte {
 	binary.BigEndian.PutUint16(u.Count[:], uint16(1))
 	err := binary.Write(b, binary.LittleEndian, u)
 	if err != nil {
-		leds.Panic(fmt.Sprintf("cannot serialize msg payload, %v", err))
+		panic(fmt.Sprintf("cannot serialize msg payload, %v", err))
 	}
 
 	final := append(b.Bytes(), uint8(code))

@@ -4,8 +4,6 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 
 	"github.com/gsora/fidati"
-
-	"github.com/gsora/fidati/leds"
 )
 
 func baseConfiguration(device *usb.Device) {
@@ -67,6 +65,6 @@ func startUSB() {
 // since we're in a critical configuration phase, panic on error.
 func notErr(e error) {
 	if e != nil {
-		leds.Panic(e)
+		panic(e)
 	}
 }

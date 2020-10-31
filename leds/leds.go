@@ -43,13 +43,11 @@ func StopBlink() {
 	cancelFuncs = nil
 }
 
-// Panic stops blinking, turns both LEDs on and invokes panic() with v as argument.
-func Panic(v interface{}) {
+// Panic stops blinking, turns both LEDs on.
+func Panic() {
 	StopBlink()
 	usbarmory.LED("blue", true)
 	usbarmory.LED("white", true)
-
-	panic(v)
 }
 
 func blink(ctx context.Context, led string) {
