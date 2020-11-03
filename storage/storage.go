@@ -15,13 +15,13 @@ import (
 // Storage holds a KeyStorge instance and a low-level device io.ReadWriter.
 type Storage struct {
 	ks     KeyStorage
-	device io.ReadWriter
+	device io.Writer
 }
 
 // New returns a new Storage instance with the given device.
 // If device is nil, the returned Storage instance have it set to a NilDevice instance.
 // If data is nil, the returned Storage instance have it set to an empty KeyStorage.
-func New(device io.ReadWriter, data []byte) (*Storage, error) {
+func New(device io.Writer, data []byte) (*Storage, error) {
 	if device == nil {
 		device = NilDevice{}
 	}
@@ -47,6 +47,7 @@ func New(device io.ReadWriter, data []byte) (*Storage, error) {
 // LoadStorage loads a serialized KeyStorage instance from b.
 func LoadStorage(b []byte) (KeyStorage, error) {
 	rb := bytes.NewReader(b)
+	gob.Register(elliptic.P256())
 	decoder := gob.NewDecoder(rb)
 	if decoder == nil {
 		return KeyStorage{}, errors.New("gob decoder is nil")
