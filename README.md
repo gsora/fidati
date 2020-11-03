@@ -14,12 +14,17 @@ What works:
  - site registration
  - site authentication
 
-What doesn't work:
-- persistence (rebooting the Armory makes everything go away)
+`fidati` uses the microSD card as its support for persistency. 
 
-Since `fidati` currently doesn't store the keys it generates, it's practically useless.
+Currently no filesystem is supported, so `fidati` will use up the entire microSD space if needed.
 
-A persistence strategy will be implemented sometime soon.
+This means that `fidati` can only be ran from the Armory eMMC - a future revision will fix this.
+
+To prepare a microSD for `fidati`, zero out the first 512 bytes:
+
+```bash
+dd if=/dev/zero of=/dev/mmcblk0 bs=512 count=1
+```
 
 ## Building and running
 
