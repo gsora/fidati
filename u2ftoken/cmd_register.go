@@ -38,7 +38,7 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 	resp.WriteByte(byte(len(newKey.ID)))
 
 	resp.Write(newKey.ID[:])
-	resp.Write(attestationCertificate)
+	resp.Write(t.attestationCertificate)
 
 	sigPayload := buildSigPayload(
 		appParam,
@@ -50,7 +50,7 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 	sph := sha256.Sum256(sigPayload)
 	spHash := sph[:]
 
-	sign, err := ecdsa.SignASN1(rand.Reader, attestationPrivkey, spHash)
+	sign, err := ecdsa.SignASN1(rand.Reader, t.attestationPrivkey, spHash)
 	if err != nil {
 		return Response{}, err
 	}

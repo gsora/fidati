@@ -9,16 +9,6 @@ import (
 	"github.com/gsora/fidati/storage"
 )
 
-var (
-	//PSA: both of those values are filled in this package's init.go
-
-	// X.509 attestation certificate, sent along in registration requests
-	attestationCertificate []byte
-
-	// ECDSA private key, used to sign registration requests
-	attestationPrivkey *ecdsa.PrivateKey
-)
-
 // command represents a U2F standard command.
 // See https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.pdf for more
 // details.
@@ -112,13 +102,17 @@ func (r Response) Bytes() []byte {
 // Token represents a U2F token.
 // It handles request parsing and composition, key storage orchestration.
 type Token struct {
-	storage *storage.Storage
+	storage                *storage.Storage
+	attestationCertificate []byte
+	attestationPrivkey     *ecdsa.PrivateKey
 }
 
 // New returns a new Token instance with s as storage.
-func New(s *storage.Storage) *Token {
+func New(s *storage.Storage, attCert []byte, attPrivKey *ecdsa.PrivateKey) *Token {
 	return &Token{
-		storage: s,
+		storage:                s,
+		attestationCertificate: attCert,
+		attestationPrivkey:     attPrivKey,
 	}
 }
 
