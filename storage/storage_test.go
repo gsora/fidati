@@ -67,7 +67,7 @@ func Test_keyStorage_NewKeyItem(t *testing.T) {
 					storage.Device = storage.NilDevice{}
 				}()
 			}
-			ks := storage.New()
+			ks := storage.NewKeyStorage()
 			require.NotNil(t, ks)
 
 			ki, err := ks.NewKeyItem(tt.appID)
@@ -91,7 +91,7 @@ func Test_keyStorage_NewKeyItem(t *testing.T) {
 func Test_KeyStorage_Bytes(t *testing.T) {
 	r := make([]byte, 32)
 	rand.Read(r)
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	_, err := ks.NewKeyItem(r)
 	require.NoError(t, err)
 	var bb []byte
@@ -106,7 +106,7 @@ func Test_KeyStorage_Bytes(t *testing.T) {
 func Test_LoadStorage(t *testing.T) {
 	r := make([]byte, 32)
 	rand.Read(r)
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	_, err := ks.NewKeyItem(r)
 	require.NoError(t, err)
 	var bb []byte
@@ -128,13 +128,13 @@ func Test_LoadStorage(t *testing.T) {
 }
 
 func Test_New(t *testing.T) {
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 	require.Empty(t, ks.M)
 }
 
 func TestKeyStorage_ItemExist(t *testing.T) {
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 
 	var sid [32]byte
@@ -152,7 +152,7 @@ func TestKeyStorage_ItemExist(t *testing.T) {
 }
 
 func TestKeyStorage_ItemDoesntExist(t *testing.T) {
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 
 	var sid [32]byte
@@ -169,7 +169,7 @@ func TestKeyStorage_ItemDoesntExist(t *testing.T) {
 }
 
 func TestKeyStorage_IncrementKeyItemExist(t *testing.T) {
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 
 	var sid [32]byte
@@ -191,7 +191,7 @@ func TestKeyStorage_IncrementKeyItemExist(t *testing.T) {
 func TestKeyStorage_IncrementKeyItemExistDeviceFails(t *testing.T) {
 	storage.Device = &failRW{}
 
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 
 	var sid [32]byte
@@ -211,7 +211,7 @@ func TestKeyStorage_IncrementKeyItemExistDeviceFails(t *testing.T) {
 }
 
 func TestKeyStorage_IncrementKeyItemDoesntExist(t *testing.T) {
-	ks := storage.New()
+	ks := storage.NewKeyStorage()
 	require.NotNil(t, ks)
 
 	var sid [32]byte

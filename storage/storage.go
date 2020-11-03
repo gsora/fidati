@@ -12,28 +12,53 @@ import (
 	"io"
 )
 
-// Storage is the global KeyStorage instance.
-var Storage *KeyStorage
+// Storage holds a KeyStorge instance and a low-level device io.ReadWriter.
+type Storage struct {
+	ks     KeyStorage
+	device io.ReadWriter
+}
 
-// Device represents a generic interface with a storage component,
-// used to persist Storage.
-var Device io.ReadWriter = NilDevice{}
+// New returns a new Storage instance with the given device.
+// If device is nil, the returned Storage instance have it set to a NilDevice instance.
+// If data is nil, the returned Storage instance have it set to an empty KeyStorage.
+func New(device io.ReadWriter, data []byte) (*Storage, error) {
+	if device == nil {
+		device = NilDevice{}
+	}
 
-// LoadStorage loads a serialized KeyStorage instance from b, and assigns it to
-// Storage.
-func LoadStorage(b []byte) error {
+	var ks *KeyStorage
+	if data == nil {
+		ks = NewKeyStorage()
+	} else {
+		k, err := LoadStorage(data)
+		if err != nil {
+			return nil, err
+		}
+
+		ks = &k
+	}
+
+	return &Storage{
+		*ks,
+		device,
+	}, nil
+}
+
+// LoadStorage loads a serialized KeyStorage instance from b.
+func LoadStorage(b []byte) (KeyStorage, error) {
 	rb := bytes.NewReader(b)
 	decoder := gob.NewDecoder(rb)
 	if decoder == nil {
-		return errors.New("gob decoder is nil")
+		return KeyStorage{}, errors.New("gob decoder is nil")
 	}
 
-	err := decoder.Decode(Storage)
+	var ks KeyStorage
+	err := decoder.Decode(&ks)
 	if err != nil {
-		return fmt.Errorf("error while decoding storage bytes, %w", err)
+		return KeyStorage{}, fmt.Errorf("error while decoding storage bytes, %w", err)
 	}
 
-	return nil
+	return ks, nil
 }
 
 // KeyStorage stores registered relying party keys.
@@ -41,8 +66,8 @@ type KeyStorage struct {
 	M map[[32]byte]KeyItem
 }
 
-// New initializes a new keyStorage instance.
-func New() *KeyStorage {
+// NewKeyStorage initializes a new keyStorage instance.
+func NewKeyStorage() *KeyStorage {
 	return &KeyStorage{
 		M: map[[32]byte]KeyItem{},
 	}
@@ -69,7 +94,7 @@ type KeyItem struct {
 }
 
 // NewKeyItem initializes a new keyItem for a given appID, and stores it into ks.
-func (ks *KeyStorage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
+func (s *Storage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
 	if appID == nil || len(appID) == 0 {
 		return nil, errors.New("appID can't be empty")
 	}
@@ -89,10 +114,10 @@ func (ks *KeyStorage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
 	ki.PrivateKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
 	if err == nil {
-		ks.M[ki.ID] = *ki
+		s.ks.M[ki.ID] = *ki
 	}
 
-	_, err = Device.Write(ks.Bytes())
+	_, err = s.device.Write(s.ks.Bytes())
 	if err != nil {
 		ki = nil
 		err = fmt.Errorf("cannot store new KeyItem on Device, %w", err)
@@ -103,8 +128,8 @@ func (ks *KeyStorage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
 }
 
 // Item returns the keyItem associated with key.
-func (ks *KeyStorage) Item(key [32]byte) (KeyItem, error) {
-	i, ok := ks.M[key]
+func (s *Storage) Item(key [32]byte) (KeyItem, error) {
+	i, ok := s.ks.M[key]
 	if !ok {
 		return KeyItem{}, fmt.Errorf("item not found")
 	}
@@ -113,17 +138,17 @@ func (ks *KeyStorage) Item(key [32]byte) (KeyItem, error) {
 }
 
 // IncrementKeyItem increments Counter of the keyItem associated with key.
-func (ks *KeyStorage) IncrementKeyItem(key [32]byte) (uint32, error) {
-	i, ok := ks.M[key]
+func (s *Storage) IncrementKeyItem(key [32]byte) (uint32, error) {
+	i, ok := s.ks.M[key]
 	if !ok {
 		return 0, fmt.Errorf("item not found")
 	}
 
 	i.Counter++
 
-	ks.M[key] = i
+	s.ks.M[key] = i
 
-	_, err := Device.Write(ks.Bytes())
+	_, err := s.device.Write(s.ks.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("cannot store new KeyItem on Device, %w", err)
 	}
