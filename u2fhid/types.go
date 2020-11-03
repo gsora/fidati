@@ -3,6 +3,7 @@ package u2fhid
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/gsora/fidati/u2ftoken"
@@ -74,14 +75,18 @@ type Handler struct {
 }
 
 // NewHandler returns a new Handler instance with a given panicHandler and u2ftoken.Token.
-func NewHandler(panicHandler func(), token *u2ftoken.Token) *Handler {
+// PanicHandler can be nil, but token cannot.
+func NewHandler(panicHandler func(), token *u2ftoken.Token) (*Handler, error) {
+	if token == nil {
+		return nil, errors.New("token is nil")
+	}
 	return &Handler{
 		PanicHandler: panicHandler,
 		token:        token,
 		state: &u2fHIDState{
 			sessions: map[uint32]*session{},
 		},
-	}
+	}, nil
 }
 
 // handlePanic returns PanicHandler if defined, otherwise it's no-op.
