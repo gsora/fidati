@@ -63,10 +63,6 @@ const (
 
 // Handler holds methods for sending and receiving packets.
 type Handler struct {
-	// PanicHandler is a function which gracefully handles panic() calls.
-	// It usually calls recover().
-	PanicHandler func()
-
 	// u2ftoken instance
 	token *u2ftoken.Token
 
@@ -74,28 +70,19 @@ type Handler struct {
 	state *u2fHIDState
 }
 
-// NewHandler returns a new Handler instance with a given panicHandler and u2ftoken.Token.
-// PanicHandler can be nil, but token cannot.
-func NewHandler(panicHandler func(), token *u2ftoken.Token) (*Handler, error) {
+// NewHandler returns a new Handler instance with a given u2ftoken.Token.
+// Token cannot be nil.
+func NewHandler(token *u2ftoken.Token) (*Handler, error) {
 	if token == nil {
 		return nil, errors.New("token is nil")
 	}
+
 	return &Handler{
-		PanicHandler: panicHandler,
-		token:        token,
+		token: token,
 		state: &u2fHIDState{
 			sessions: map[uint32]*session{},
 		},
 	}, nil
-}
-
-// handlePanic returns PanicHandler if defined, otherwise it's no-op.
-func (h *Handler) handlePanic() func() {
-	if h.PanicHandler == nil {
-		return func() {}
-	}
-
-	return h.PanicHandler
 }
 
 // u2fPacket is implemented by U2F HID packets, and exposes methods that must be implemented

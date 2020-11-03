@@ -24,9 +24,6 @@ func zeroPad(b []byte) []byte {
 // Tx handles USB endpoint data outtake.
 // res will always not be nil.
 func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
-	pa := h.handlePanic()
-	defer pa()
-
 	if h.state.outboundMsgs == nil || h.state.accumulatingMsgs {
 		return
 	}
@@ -66,16 +63,13 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 // Rx handles data intake, parses messages and builds responses.
 // res will always be nil.
 func (h *Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
-	pa := h.handlePanic()
-	defer pa()
-
 	if buf == nil {
 		return
 	}
 
-	msgs, parseErr := h.parseMsg(buf)
-	if parseErr != nil {
-		log.Println(parseErr)
+	msgs, err := h.parseMsg(buf)
+	if err != nil {
+		log.Println(err)
 		h.state.clear()
 		return
 	}
@@ -202,9 +196,9 @@ func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
 }
 
 // broadcastReq responds to broadcast messages, sent with channel id [255, 255, 255, 255].
-func broadcastReq(ip initPacket) []byte {
+func broadcastReq(ip initPacket) ([]byte, error) {
 	if ip.Cmd != cmdInit {
-		panic(fmt.Sprintf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command()))
+		return nil, fmt.Errorf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command())
 	}
 
 	log.Println("found cmdInit on broadcast channel")
@@ -227,9 +221,10 @@ func broadcastReq(ip initPacket) []byte {
 	binary.BigEndian.PutUint16(u.Count[:], 17)
 	err := binary.Write(b, binary.LittleEndian, u)
 	if err != nil {
-		panic(fmt.Sprintf("cannot serialize initResponse: %s", err.Error()))
+		return nil, fmt.Errorf("cannot serialize initResponse: %w", err)
 	}
-	return b.Bytes()
+
+	return b.Bytes(), nil
 }
 
 // packetBuilder builds response packages for a given session, depending on session.command.
@@ -248,9 +243,12 @@ func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, erro
 
 		h.state.lastChannelID = broadcastChan
 
-		return [][]byte{
-			broadcastReq(ip),
-		}, nil
+		ret, err := broadcastReq(ip)
+		if err != nil {
+			return nil, err
+		}
+
+		return [][]byte{ret}, nil
 	case cmdPing:
 		pkts, err := handlePing(session, pkt)
 		if err != nil {
