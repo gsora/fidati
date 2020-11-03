@@ -7,8 +7,12 @@ import (
 	"runtime/debug"
 
 	"github.com/gsora/fidati/leds"
+	"github.com/gsora/fidati/storage"
 
+	usbarmory "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
 	"github.com/f-secure-foundry/tamago/soc/imx6"
+
+	_ "github.com/gsora/fidati/firmware/certs"
 )
 
 var (
@@ -45,6 +49,13 @@ func init() {
 	log.Printf("imx6_soc: %s (%#x, %d.%d) @ %d MHz - native:%v",
 		model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
 
+	err := usbarmory.SD.Detect()
+	if err != nil {
+		panic(err)
+	}
+
+	readCertPrivkey()
+
 	leds.StartBlink()
 }
 
@@ -55,7 +66,33 @@ func main() {
 
 	go rebootWatcher()
 
-	startUSB(catchPanic)
+	s := &sd{}
+
+	if err := blank(); err != nil {
+		panic(err)
+	}
+
+	var store *storage.Storage
+	data, err := readStorageData(s)
+	if err != nil && err != noData {
+		panic(err)
+	} else if err == noData {
+		st, err := storage.New(s, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		store = st
+	} else {
+		st, err := storage.New(s, data)
+		if err != nil {
+			panic(err)
+		}
+
+		store = st
+	}
+
+	startUSB(store)
 }
 
 func rebootWatcher() {
@@ -86,5 +123,12 @@ func catchPanic() {
 
 		for {
 		} // stuck here forever!
+	}
+}
+
+// since we're in a critical configuration phase, panic on error.
+func notErr(e error) {
+	if e != nil {
+		panic(e)
 	}
 }

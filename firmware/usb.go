@@ -4,6 +4,9 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 
 	"github.com/gsora/fidati"
+	"github.com/gsora/fidati/storage"
+	"github.com/gsora/fidati/u2fhid"
+	"github.com/gsora/fidati/u2ftoken"
 )
 
 func baseConfiguration(device *usb.Device) {
@@ -39,20 +42,21 @@ func baseConfiguration(device *usb.Device) {
 	device.Descriptor.SerialNumber = iSerial
 }
 
-func startUSB(panicHandler func()) {
+func startUSB(store *storage.Storage) {
 	device := &usb.Device{}
-	fidati.U2FHandler.PanicHandler = panicHandler
+
+	token := u2ftoken.New(store, attestationCertificate, attestationPrivkey)
+	hid, err := u2fhid.NewHandler(token)
+	notErr(err)
 
 	conf := fidati.DefaultConfiguration()
 
 	baseConfiguration(device)
 
-	err := device.AddConfiguration(&conf)
-	if err != nil {
-		notErr(err)
-	}
+	err = device.AddConfiguration(&conf)
+	notErr(err)
 
-	err = fidati.ConfigureUSB(&conf, device)
+	err = fidati.ConfigureUSB(&conf, device, hid)
 	notErr(err)
 
 	usb.USB1.Init()
@@ -61,11 +65,4 @@ func startUSB(panicHandler func()) {
 
 	// never returns
 	usb.USB1.Start(device)
-}
-
-// since we're in a critical configuration phase, panic on error.
-func notErr(e error) {
-	if e != nil {
-		panic(e)
-	}
 }
