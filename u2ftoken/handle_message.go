@@ -9,7 +9,7 @@ import (
 var notSatisfied = errorResponse(errConditionNotSatisfied).Bytes()
 
 // HandleMessage handles a request, and returns a response byte slice.
-func HandleMessage(req Request) []byte {
+func (t *Token) HandleMessage(req Request) []byte {
 	var resp Response
 	var handleErr error
 
@@ -17,11 +17,11 @@ func HandleMessage(req Request) []byte {
 
 	switch req.Command {
 	case Version:
-		resp, handleErr = handleVersion(req)
+		resp, handleErr = t.handleVersion(req)
 	case Register:
-		resp, handleErr = handleRegister(req)
+		resp, handleErr = t.handleRegister(req)
 	case Authenticate:
-		resp, handleErr = handleAuthenticate(req)
+		resp, handleErr = t.handleAuthenticate(req)
 	default:
 		return notSatisfied
 	}

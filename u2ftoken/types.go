@@ -5,6 +5,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gsora/fidati/storage"
 )
 
 var (
@@ -107,9 +109,22 @@ func (r Response) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// Token represents a U2F token.
+// It handles request parsing and composition, key storage orchestration.
+type Token struct {
+	storage *storage.Storage
+}
+
+// New returns a new Token instance with s as storage.
+func New(s *storage.Storage) *Token {
+	return &Token{
+		storage: s,
+	}
+}
+
 // ParseRequest parses req as a U2F request.
 // It returns a Request instance filled with the appropriate data from req, and an error.
-func ParseRequest(req []byte) (Request, error) {
+func (t *Token) ParseRequest(req []byte) (Request, error) {
 	var ret Request
 
 	if req == nil {

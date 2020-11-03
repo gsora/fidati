@@ -8,12 +8,6 @@ import (
 	"math"
 )
 
-var (
-	state = &u2fHIDState{
-		sessions: map[uint32]*session{},
-	}
-)
-
 // zeroPad pads b with as many zeroes as needed to have len(b) == 64.
 func zeroPad(b []byte) []byte {
 	if len(b) == 64 {
@@ -33,38 +27,38 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 	pa := h.handlePanic()
 	defer pa()
 
-	if state.outboundMsgs == nil || state.accumulatingMsgs {
+	if h.state.outboundMsgs == nil || h.state.accumulatingMsgs {
 		return
 	}
 
-	if state.lastOutboundIndex == 0 {
-		log.Println("found", len(state.outboundMsgs), "outbound messages")
+	if h.state.lastOutboundIndex == 0 {
+		log.Println("found", len(h.state.outboundMsgs), "outbound messages")
 	}
 
-	if len(state.outboundMsgs) == 1 {
+	if len(h.state.outboundMsgs) == 1 {
 		b := &bytes.Buffer{}
-		binary.Write(b, binary.LittleEndian, zeroPad(state.outboundMsgs[state.lastOutboundIndex]))
+		binary.Write(b, binary.LittleEndian, zeroPad(h.state.outboundMsgs[h.state.lastOutboundIndex]))
 
 		res = b.Bytes()
 		log.Println(res)
 		log.Println("finished processing messages, clearing buffers")
-		state.clear()
+		h.state.clear()
 		return
 	}
 
-	if state.lastOutboundIndex == len(state.outboundMsgs) {
+	if h.state.lastOutboundIndex == len(h.state.outboundMsgs) {
 		log.Println("finished processing messages, clearing buffers")
-		state.clear()
+		h.state.clear()
 		return
 	}
 
 	b := &bytes.Buffer{}
-	binary.Write(b, binary.LittleEndian, zeroPad(state.outboundMsgs[state.lastOutboundIndex]))
-	state.lastOutboundIndex++
+	binary.Write(b, binary.LittleEndian, zeroPad(h.state.outboundMsgs[h.state.lastOutboundIndex]))
+	h.state.lastOutboundIndex++
 
 	res = b.Bytes()
 
-	log.Println("processed message", state.lastOutboundIndex)
+	log.Println("processed message", h.state.lastOutboundIndex)
 
 	return
 }
@@ -79,21 +73,21 @@ func (h *Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 		return
 	}
 
-	msgs, parseErr := parseMsg(buf)
+	msgs, parseErr := h.parseMsg(buf)
 	if parseErr != nil {
 		log.Println(parseErr)
-		state.clear()
+		h.state.clear()
 		return
 	}
 
-	state.outboundMsgs = msgs
+	h.state.outboundMsgs = msgs
 
 	return
 }
 
 // parseMsg parses msg and constructs a slice of messages ready to be sent over the wire.
 // Each response message is exactly 64 bytes in length.
-func parseMsg(msg []byte) ([][]byte, error) {
+func (h *Handler) parseMsg(msg []byte) ([][]byte, error) {
 	if len(msg) != 64 { // something's wrong
 		return nil, fmt.Errorf("wrong message length, expected 64 but got %d", len(msg))
 	}
@@ -107,7 +101,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 		log.Println("found init packet")
 		ip := parseInitPkt(msg)
 
-		s, ok := state.sessions[ip.Channel()]
+		s, ok := h.state.sessions[ip.Channel()]
 		if !ok {
 			s = &session{}
 		}
@@ -120,19 +114,19 @@ func parseMsg(msg []byte) ([][]byte, error) {
 		s.data = append(s.data, ip.Data...)
 		s.leftToRead = uint64(int(ip.PayloadLength) - len(s.data))
 
-		state.sessions[ip.Channel()] = s
+		h.state.sessions[ip.Channel()] = s
 
 		if s.total <= initPacketDataLen {
 			// handle everything as a single entity
-			return packetBuilder(s, ip)
+			return h.packetBuilder(s, ip)
 		}
 
-		state.accumulatingMsgs = true
+		h.state.accumulatingMsgs = true
 	} else {
 		log.Println("found continuation packet")
 		cp := parseContinuationPkt(msg)
 
-		session, ok := state.sessions[cp.Channel()]
+		session, ok := h.state.sessions[cp.Channel()]
 		if !ok {
 			return nil, fmt.Errorf("new continuation packet with id 0x%X, which was not seen before", cp.ChannelID)
 		}
@@ -166,7 +160,7 @@ func parseMsg(msg []byte) ([][]byte, error) {
 		}
 
 		log.Printf("finished reading data for channel 0x%X, total bytes %d", cp.Channel(), len(session.data))
-		return packetBuilder(session, cp)
+		return h.packetBuilder(session, cp)
 	}
 
 	return nil, nil
@@ -239,7 +233,7 @@ func broadcastReq(ip initPacket) []byte {
 }
 
 // packetBuilder builds response packages for a given session, depending on session.command.
-func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
+func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 	log.Println("message", u2fHIDCommand(pkt.Command()))
 	switch session.command {
 	case cmdInit:
@@ -252,7 +246,7 @@ func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 			return nil, fmt.Errorf("found a cmdInit, but not on the broadcast channel")
 		}
 
-		state.lastChannelID = broadcastChan
+		h.state.lastChannelID = broadcastChan
 
 		return [][]byte{
 			broadcastReq(ip),
@@ -263,17 +257,17 @@ func packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 			return nil, fmt.Errorf("error while handling ping, %w", err)
 		}
 
-		state.accumulatingMsgs = false
-		state.lastChannelID = pkt.Channel()
+		h.state.accumulatingMsgs = false
+		h.state.lastChannelID = pkt.Channel()
 		return pkts, nil
 	case cmdMsg:
-		pkts, err := handleMsg(session, pkt)
+		pkts, err := h.handleMsg(session, pkt)
 		if err != nil {
 			return nil, fmt.Errorf("error while handling msg, %w", err)
 		}
 
-		state.accumulatingMsgs = false
-		state.lastChannelID = pkt.Channel()
+		h.state.accumulatingMsgs = false
+		h.state.lastChannelID = pkt.Channel()
 		return pkts, nil
 	default:
 		log.Printf("command %d not found, sending error payload", session.command)

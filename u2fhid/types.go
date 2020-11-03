@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gsora/fidati/u2ftoken"
 )
 
 // u2fHIDReport is a byte slice holding a standard U2F HID report.
@@ -63,6 +65,23 @@ type Handler struct {
 	// PanicHandler is a function which gracefully handles panic() calls.
 	// It usually calls recover().
 	PanicHandler func()
+
+	// u2ftoken instance
+	token *u2ftoken.Token
+
+	// u2fhid state
+	state *u2fHIDState
+}
+
+// NewHandler returns a new Handler instance with a given panicHandler and u2ftoken.Token.
+func NewHandler(panicHandler func(), token *u2ftoken.Token) *Handler {
+	return &Handler{
+		PanicHandler: panicHandler,
+		token:        token,
+		state: &u2fHIDState{
+			sessions: map[uint32]*session{},
+		},
+	}
 }
 
 // handlePanic returns PanicHandler if defined, otherwise it's no-op.
@@ -114,7 +133,7 @@ type u2fHIDState struct {
 
 // clear deletes the last channel id session, and sets outbound messages and its index, and channel id to zero.s
 func (u *u2fHIDState) clear() {
-	u.sessions[state.lastChannelID].clear()
+	u.sessions[u.lastChannelID].clear()
 	u.outboundMsgs = nil
 	u.lastOutboundIndex = 0
 	u.lastChannelID = 0

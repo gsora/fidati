@@ -7,8 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"log"
-
-	"github.com/gsora/fidati/storage"
 )
 
 const (
@@ -20,7 +18,7 @@ const (
 	controlDontEnforceUserPresenceAndSign = 0x08
 )
 
-func handleAuthenticate(req Request) (Response, error) {
+func (t *Token) handleAuthenticate(req Request) (Response, error) {
 	if len(req.Data) < minimumLen {
 		return Response{}, errWrongLength
 	}
@@ -29,7 +27,7 @@ func handleAuthenticate(req Request) (Response, error) {
 
 	log.Println("control byte ", controlByte)
 
-	log.Printf("keys %+v", storage.Storage.M)
+	log.Printf("keys %+v", t.storage)
 
 	challengeParam := req.Data[0:32]
 	appParam := req.Data[32:64]
@@ -47,7 +45,7 @@ func handleAuthenticate(req Request) (Response, error) {
 	var khKey [32]byte
 	copy(khKey[:], kh)
 
-	ki, err := storage.Storage.Item(khKey)
+	ki, err := t.storage.Item(khKey)
 	log.Println("query item ", ki, err)
 
 	if controlByte == controlCheckOnly {
@@ -66,7 +64,7 @@ func handleAuthenticate(req Request) (Response, error) {
 		return Response{}, err
 	}
 
-	ni, err := storage.Storage.IncrementKeyItem(khKey)
+	ni, err := t.storage.IncrementKeyItem(khKey)
 	if err != nil {
 		return Response{}, err
 	}

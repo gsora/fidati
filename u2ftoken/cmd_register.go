@@ -7,8 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"log"
-
-	"github.com/gsora/fidati/storage"
 )
 
 const (
@@ -16,7 +14,7 @@ const (
 	expectedDataLen = 64
 )
 
-func handleRegister(req Request) (Response, error) {
+func (t *Token) handleRegister(req Request) (Response, error) {
 	if len(req.Data) != expectedDataLen {
 		log.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
 		return Response{}, errWrongLength
@@ -25,7 +23,7 @@ func handleRegister(req Request) (Response, error) {
 	challengeParam := req.Data[:32]
 	appParam := req.Data[32:]
 
-	newKey, err := storage.Storage.NewKeyItem(appParam)
+	newKey, err := t.storage.NewKeyItem(appParam)
 	if err != nil {
 		return Response{}, err
 	}
