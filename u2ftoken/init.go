@@ -7,16 +7,12 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 
-	"github.com/gsora/fidati/storage"
-
 	// statik generated files
 	_ "github.com/gsora/fidati/u2ftoken/certs"
 	"github.com/rakyll/statik/fs"
 )
 
 func init() {
-	// initialize storage, empty one for now
-	storage.Storage = storage.New()
 	readCertPrivkey()
 }
 
