@@ -9,10 +9,15 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 )
 
 // Storage is the global KeyStorage instance.
 var Storage *KeyStorage
+
+// Device represents a generic interface with a storage component,
+// used to persist Storage.
+var Device io.ReadWriter = NilDevice{}
 
 // LoadStorage loads a serialized KeyStorage instance from b, and assigns it to
 // Storage.
@@ -87,6 +92,13 @@ func (ks *KeyStorage) NewKeyItem(appID []byte) (ki *KeyItem, err error) {
 		ks.M[ki.ID] = *ki
 	}
 
+	_, err = Device.Write(ks.Bytes())
+	if err != nil {
+		ki = nil
+		err = fmt.Errorf("cannot store new KeyItem on Device, %w", err)
+		return
+	}
+
 	return
 }
 
@@ -110,5 +122,11 @@ func (ks *KeyStorage) IncrementKeyItem(key [32]byte) (uint32, error) {
 	i.Counter++
 
 	ks.M[key] = i
+
+	_, err := Device.Write(ks.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("cannot store new KeyItem on Device, %w", err)
+	}
+
 	return uint32(i.Counter), nil
 }

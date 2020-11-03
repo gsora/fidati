@@ -2,11 +2,24 @@ package storage_test
 
 import (
 	"crypto/rand"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/gsora/fidati/storage"
 	"github.com/stretchr/testify/require"
 )
+
+// failRW is a io.ReadWriter which always fails.
+type failRW struct{}
+
+func (f *failRW) Read(p []byte) (n int, err error) {
+	return -1, errors.New("error")
+}
+
+func (f *failRW) Write(p []byte) (n int, err error) {
+	return -1, errors.New("error")
+}
 
 func Test_keyStorage_NewKeyItem(t *testing.T) {
 	randData := func() []byte {
@@ -19,25 +32,41 @@ func Test_keyStorage_NewKeyItem(t *testing.T) {
 		name    string
 		appID   []byte
 		wantErr bool
+		device  io.ReadWriter
 	}{
 		{
 			"creates a new keyItem successfully",
 			randData(),
 			false,
+			nil,
 		},
 		{
 			"appID is nil",
 			nil,
 			true,
+			nil,
 		},
 		{
 			"appID len == 0",
 			[]byte{},
 			true,
+			nil,
+		},
+		{
+			"creates a new keyItem successfully but Device write returns error",
+			randData(),
+			true,
+			&failRW{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.device != nil {
+				storage.Device = tt.device
+				defer func() {
+					storage.Device = storage.NilDevice{}
+				}()
+			}
 			ks := storage.New()
 			require.NotNil(t, ks)
 
@@ -152,6 +181,28 @@ func TestKeyStorage_IncrementKeyItemExist(t *testing.T) {
 	i, err := ks.IncrementKeyItem(sid)
 	require.NoError(t, err)
 	require.Equal(t, uint32(1), i)
+
+	ki, err := ks.Item(sid)
+	require.NoError(t, err)
+
+	require.Equal(t, uint64(1), ki.Counter)
+}
+
+func TestKeyStorage_IncrementKeyItemExistDeviceFails(t *testing.T) {
+	storage.Device = &failRW{}
+
+	ks := storage.New()
+	require.NotNil(t, ks)
+
+	var sid [32]byte
+	copy(sid[:], "appID")
+	ks.M[sid] = storage.KeyItem{
+		ID: sid,
+	}
+
+	i, err := ks.IncrementKeyItem(sid)
+	require.Error(t, err)
+	require.Equal(t, uint32(0), i)
 
 	ki, err := ks.Item(sid)
 	require.NoError(t, err)
