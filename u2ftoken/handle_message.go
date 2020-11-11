@@ -2,7 +2,8 @@ package u2ftoken
 
 import (
 	"errors"
-	"log"
+
+	"github.com/gsora/fidati/internal/flog"
 )
 
 // a ready-made instance of the errConditionNotSatisfied error.
@@ -13,7 +14,7 @@ func (t *Token) HandleMessage(req Request) []byte {
 	var resp Response
 	var handleErr error
 
-	log.Printf("message type: %s\n", req.Command)
+	flog.Logger.Printf("message type: %s\n", req.Command)
 
 	switch req.Command {
 	case Version:
@@ -30,19 +31,19 @@ func (t *Token) HandleMessage(req Request) []byte {
 		var err errorCode
 
 		if !errors.As(handleErr, &err) {
-			// this is a strange error, log it and return ErrConditionNotSatisfied
-			log.Println("non-u2f error detected:", handleErr)
+			// this is a strange error, flog.Logger.it and return ErrConditionNotSatisfied
+			flog.Logger.Println("non-u2f error detected:", handleErr)
 			return notSatisfied
 		}
 
 		return errorResponse(err).Bytes()
 	}
 
-	log.Println("response len: ", len(resp.Bytes()))
+	flog.Logger.Println("response len: ", len(resp.Bytes()))
 
 	respBytes, err := buildResponse(req, resp)
 	if err != nil {
-		log.Println("cannot build response:", err)
+		flog.Logger.Println("cannot build response:", err)
 		return notSatisfied
 	}
 

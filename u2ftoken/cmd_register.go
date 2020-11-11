@@ -6,7 +6,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"log"
+
+	"github.com/gsora/fidati/internal/flog"
 )
 
 const (
@@ -16,34 +17,39 @@ const (
 
 func (t *Token) handleRegister(req Request) (Response, error) {
 	if len(req.Data) != expectedDataLen {
-		log.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
+		flog.Logger.Printf("message length is %d instead of %d\n", len(req.Data), expectedDataLen)
 		return Response{}, errWrongLength
 	}
 
-	challengeParam := req.Data[:32]
-	appParam := req.Data[32:]
+	if !t.keyring.Counter.UserPresence() {
+		flog.Logger.Println("user presence during registration is required")
+		return Response{}, errConditionNotSatisfied
+	}
 
-	newKey, err := t.storage.NewKeyItem(appParam)
+	challengeParam := req.Data[:32]
+	appID := req.Data[32:]
+
+	newKey, keyHandle, err := t.keyring.Register(appID)
 	if err != nil {
 		return Response{}, err
 	}
 
-	pubkey := elliptic.Marshal(elliptic.P256(), newKey.PrivateKey.PublicKey.X, newKey.PrivateKey.PublicKey.Y)
+	pubkey := elliptic.Marshal(elliptic.P256(), newKey.X, newKey.Y)
 
 	resp := new(bytes.Buffer)
 
 	resp.WriteByte(0x05)
 	resp.Write(pubkey)
 
-	resp.WriteByte(byte(len(newKey.ID)))
+	resp.WriteByte(byte(len(keyHandle)))
 
-	resp.Write(newKey.ID[:])
+	resp.Write(keyHandle)
 	resp.Write(t.attestationCertificate)
 
 	sigPayload := buildSigPayload(
-		appParam,
+		appID,
 		challengeParam,
-		newKey.ID[:],
+		keyHandle,
 		pubkey,
 	)
 
@@ -55,7 +61,7 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 		return Response{}, err
 	}
 
-	log.Println("sign len:", len(sign))
+	flog.Logger.Println("sign len:", len(sign))
 	resp.Write(sign)
 	return Response{
 		Data:       resp.Bytes(),

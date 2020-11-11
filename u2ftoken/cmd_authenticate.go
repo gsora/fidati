@@ -2,11 +2,9 @@ package u2ftoken
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
-	"log"
+
+	"github.com/gsora/fidati/internal/flog"
 )
 
 const (
@@ -25,66 +23,48 @@ func (t *Token) handleAuthenticate(req Request) (Response, error) {
 
 	controlByte := req.Parameters.First
 
-	log.Println("control byte ", controlByte)
-
-	log.Printf("keys %+v", t.storage)
+	flog.Logger.Println("control byte ", controlByte)
 
 	challengeParam := req.Data[0:32]
-	appParam := req.Data[32:64]
+	appID := req.Data[32:64]
 	khLen := req.Data[64]
 
-	log.Printf("challenge len %d, app param len %d, khlen %d", len(challengeParam), len(appParam), khLen)
+	flog.Logger.Printf("challenge len %d, app param len %d, khlen %d", len(challengeParam), len(appID), khLen)
 
 	if len(req.Data) != int(minimumLen+khLen) {
-		log.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
+		flog.Logger.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
 		// total data len must be equal to minimumLen + khLen (headers + length of the key handle)
 		return Response{}, errWrongLength
 	}
 
-	kh := req.Data[minimumLen : minimumLen+khLen]
-	var khKey [32]byte
-	copy(khKey[:], kh)
+	keyHandle := req.Data[minimumLen : minimumLen+khLen]
 
-	ki, err := t.storage.Item(khKey)
-	log.Println("query item ", ki, err)
+	userPresence := t.keyring.Counter.UserPresence()
 
-	if controlByte == controlCheckOnly {
-		if err == nil { // key found
-			log.Println("key found")
-			return Response{
-				StatusCode: errConditionNotSatisfied.Bytes(),
-			}, nil
+	// we only handle those two cases because the last one basically means
+	// "authenticate, thanks"
+	switch controlByte {
+	case controlCheckOnly:
+		return Response{}, errConditionNotSatisfied
+	case controlEnforceUserPresenceAndSign:
+		if !userPresence {
+			flog.Logger.Println("control byte asked to enforce user presence, but it wasn't present")
+			return Response{}, errConditionNotSatisfied
 		}
-
-		return Response{
-			StatusCode: errWrongData.Bytes(),
-		}, nil
-	} else if err != nil {
-		log.Println("some kind of error", err)
-		return Response{}, err
 	}
 
-	ni, err := t.storage.IncrementKeyItem(khKey)
-	if err != nil {
-		return Response{}, err
+	userPresenceByte := byte(0)
+	if userPresence {
+		userPresenceByte = 1
 	}
 
-	sp := signaturePayload(
-		appParam,
-		ni,
-		challengeParam,
-	)
-
-	sph := sha256.Sum256(sp)
-	spHash := sph[:]
-
-	sign, err := ecdsa.SignASN1(rand.Reader, ki.PrivateKey, spHash)
+	sign, ni, err := t.keyring.Authenticate(appID, challengeParam, keyHandle, userPresence)
 	if err != nil {
-		return Response{}, err
+		return Response{}, errWrongData
 	}
 
 	resp := new(bytes.Buffer)
-	resp.WriteByte(1) // user presence
+	resp.WriteByte(userPresenceByte)
 
 	counterBytes := [4]byte{}
 	binary.BigEndian.PutUint32(counterBytes[:], ni)
@@ -96,20 +76,4 @@ func (t *Token) handleAuthenticate(req Request) (Response, error) {
 		Data:       resp.Bytes(),
 		StatusCode: noError.Bytes(),
 	}, nil
-}
-
-func signaturePayload(appParam []byte, counter uint32, challengeParam []byte) []byte {
-	ret := new(bytes.Buffer)
-
-	ret.Write(appParam)
-	ret.WriteByte(1) // assume we checked user presence for now
-
-	counterBytes := [4]byte{}
-
-	binary.BigEndian.PutUint32(counterBytes[:], counter)
-
-	ret.Write(counterBytes[:])
-	ret.Write(challengeParam)
-
-	return ret.Bytes()
 }

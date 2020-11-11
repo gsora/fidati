@@ -4,7 +4,7 @@ import (
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
 
 	"github.com/gsora/fidati"
-	"github.com/gsora/fidati/storage"
+	"github.com/gsora/fidati/keyring"
 	"github.com/gsora/fidati/u2fhid"
 	"github.com/gsora/fidati/u2ftoken"
 )
@@ -42,10 +42,12 @@ func baseConfiguration(device *usb.Device) {
 	device.Descriptor.SerialNumber = iSerial
 }
 
-func startUSB(store *storage.Storage) {
+func startUSB(keyring *keyring.Keyring) {
 	device := &usb.Device{}
 
-	token := u2ftoken.New(store, attestationCertificate, attestationPrivkey)
+	token, err := u2ftoken.New(keyring, attestationCertificate, attestationPrivkey)
+	notErr(err)
+
 	hid, err := u2fhid.NewHandler(token)
 	notErr(err)
 

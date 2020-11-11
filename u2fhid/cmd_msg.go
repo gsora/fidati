@@ -1,8 +1,6 @@
 package u2fhid
 
-import (
-	"log"
-)
+import "github.com/gsora/fidati/internal/flog"
 
 // handleMsg handles cmdMsg commands.
 func (h *Handler) handleMsg(session *session, pkt u2fPacket) ([][]byte, error) {
@@ -11,7 +9,7 @@ func (h *Handler) handleMsg(session *session, pkt u2fPacket) ([][]byte, error) {
 		return nil, err
 	}
 
-	log.Printf("%+v\n", req)
+	flog.Logger.Printf("%+v\n", req)
 
 	resp := h.token.HandleMessage(req)
 

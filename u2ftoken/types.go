@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/gsora/fidati/storage"
+	"github.com/gsora/fidati/keyring"
 )
 
 // command represents a U2F standard command.
@@ -102,18 +102,30 @@ func (r Response) Bytes() []byte {
 // Token represents a U2F token.
 // It handles request parsing and composition, key storage orchestration.
 type Token struct {
-	storage                *storage.Storage
+	keyring                *keyring.Keyring
 	attestationCertificate []byte
 	attestationPrivkey     *ecdsa.PrivateKey
 }
 
-// New returns a new Token instance with s as storage.
-func New(s *storage.Storage, attCert []byte, attPrivKey *ecdsa.PrivateKey) *Token {
-	return &Token{
-		storage:                s,
-		attestationCertificate: attCert,
-		attestationPrivkey:     attPrivKey,
+// New returns a new Token instance with k as Keyring.
+// attCert must be a PEM-encoded certificate, while attPrivKey must be a X.509-encoded
+// ECDSA private key.
+func New(k *keyring.Keyring, attCert, attPrivKey []byte) (*Token, error) {
+	cert, err := parseCert(attCert)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse attestation certificate, %w", err)
 	}
+
+	key, err := parseKey(attPrivKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse attestation certificate, %w", err)
+	}
+
+	return &Token{
+		keyring:                k,
+		attestationCertificate: cert,
+		attestationPrivkey:     key,
+	}, nil
 }
 
 // ParseRequest parses req as a U2F request.

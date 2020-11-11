@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/f-secure-foundry/tamago/soc/imx6/usb"
+	"github.com/gsora/fidati/internal/flog"
 	"github.com/gsora/fidati/u2fhid"
 )
 
@@ -136,7 +136,7 @@ func hidSetup(device *usb.Device) usb.SetupFunction {
 	return func(setup *usb.SetupData) (in []byte, done, ack bool, err error) {
 		bDescriptorType := setup.Value & 0xff
 
-		log.Println("descriptor type:", bDescriptorType, setup)
+		flog.Logger.Println("descriptor type:", bDescriptorType, setup)
 
 		if setup.Request == usb.SET_FEATURE {
 			// stall here

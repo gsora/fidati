@@ -3,9 +3,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
-	"crypto/x509"
-	"encoding/pem"
 	"io/ioutil"
 
 	"github.com/rakyll/statik/fs"
@@ -16,7 +13,7 @@ var (
 	attestationCertificate []byte
 
 	// ECDSA private key, used to sign registration requests
-	attestationPrivkey *ecdsa.PrivateKey
+	attestationPrivkey []byte
 )
 
 func readCertPrivkey() {
@@ -35,11 +32,6 @@ func readCertPrivkey() {
 	aPkBytes, err := ioutil.ReadAll(aPk)
 	notErr(err)
 
-	certPem, _ := pem.Decode(aCertBytes)
-	attestationCertificate = certPem.Bytes
-
-	pkPem, _ := pem.Decode(aPkBytes)
-
-	attestationPrivkey, err = x509.ParseECPrivateKey(pkPem.Bytes)
-	notErr(err)
+	attestationCertificate = aCertBytes
+	attestationPrivkey = aPkBytes
 }

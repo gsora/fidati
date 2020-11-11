@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"strings"
+
+	"github.com/gsora/fidati/internal/flog"
 )
 
 const (
@@ -159,7 +160,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 
 	ret := make([][]byte, 0, numPktsNoInitial+1)
 
-	log.Println("expected number of packets:", numPktsNoInitial+1)
+	flog.Logger.Println("expected number of packets:", numPktsNoInitial+1)
 
 	sequence := 0
 	for i, packetPayload := range split(initPacketDataLen, continuationPacketDataLen, msg) {
@@ -171,7 +172,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 			}
 
 			binary.BigEndian.PutUint16(u.Count[:], uint16(len(msg)))
-			log.Println("length", uint16(len(msg)), "bytes", u.Count)
+			flog.Logger.Println("length", uint16(len(msg)), "bytes", u.Count)
 			err := binary.Write(b, binary.LittleEndian, u)
 			if err != nil {
 				return nil, fmt.Errorf("cannot serialize msg payload, %w", err)
@@ -180,7 +181,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 			initPingMsg := append(b.Bytes(), packetPayload...)
 			ret = append(ret, initPingMsg)
 
-			log.Println("built packet", i)
+			flog.Logger.Println("built packet", i)
 			continue
 		}
 
@@ -189,7 +190,7 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 		cc.ChannelID = chanID
 		cc.Data = packetPayload
 		ret = append(ret, cc.Bytes())
-		log.Println("built packet", i)
+		flog.Logger.Println("built packet", i)
 		sequence++
 	}
 

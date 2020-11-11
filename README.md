@@ -26,13 +26,21 @@ To prepare a microSD for `fidati`, zero out the first 512 bytes:
 dd if=/dev/zero of=/dev/mmcblk0 bs=512 count=1
 ```
 
+No relying party private key is stored, the microSD is only used to store a monotonic counter.
+
+For more details about how `fidati` deterministic key derivation works, see [here](https://www.yubico.com/blog/yubicos-u2f-key-wrapping/).
+
 ## Building and running
 
 You can run `fidati` with or without a bootloader.
 
 By default the project `Makefile` produces a binary with logging disabled.
 
-To enable logging append `TARGET="'usbarmory debug'"` to the `make` parameters.
+To enable logging append `TARGET="'usbarmory debug fidati_logs'"` to the `make` parameters.
+
+`fidati` as a library disables logging by default.
+
+To enable it, build your program with the `fidati_logs` build tag.
 
 ### Booting via U-Boot
 
@@ -71,13 +79,17 @@ A default attestation certificate and private key are contained in this reposito
 
 A CLI tool &ndash; `gen-cert` &ndash; is available for those who want to generate their own certificate and private key.
 
-For each relying party `fidati` creates a new ECDSA keypair.
+For each relying party, given their `appID` and a device-specific master key `fidati` derives in a deterministic fashion an ECDSA private key, which will then be used in the registration and authentication phase.
 
-The key handle is defined as follows:
+The derivation algorithm is defined as follows:
 
 ```
-keyHandle := applicationID + attestationPrivateKey
-``` 
+nonce := (32 secure random bytes)
+relyingPartyPrivateKey := HMAC-SHA256(MasterKey, appID, nonce)
+keyHandle := HMAC-SHA256(MasterKey, appID, relyingPartyPrivateKey) + nonce
+```
+
+To derive the private key back given a `keyHandle` and `appID`, one must extract the `nonce` by reading the last 32 bytes of `keyHandle` and then execute the algorithm again.
 
 ## Debugging
 

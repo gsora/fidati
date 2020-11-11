@@ -6,8 +6,7 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	"github.com/gsora/fidati/leds"
-	"github.com/gsora/fidati/storage"
+	"github.com/gsora/fidati/firmware/leds"
 
 	usbarmory "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
 	"github.com/f-secure-foundry/tamago/soc/imx6"
@@ -66,9 +65,9 @@ func main() {
 
 	go rebootWatcher()
 
-	s := &sd{}
+	//s := &sd{}
 
-	if err := blank(); err != nil {
+	/*if err := blank(); err != nil {
 		panic(err)
 	}
 
@@ -90,9 +89,15 @@ func main() {
 		}
 
 		store = st
+	}*/
+
+	counter, err := readSdCounter()
+	if err != nil {
+		panic(err)
 	}
 
-	startUSB(store)
+	k := genKeyring(attestationPrivkey, counter)
+	startUSB(k)
 }
 
 func rebootWatcher() {

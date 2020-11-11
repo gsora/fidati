@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
+
+	"github.com/gsora/fidati/internal/flog"
 )
 
 // zeroPad pads b with as many zeroes as needed to have len(b) == 64.
@@ -14,11 +15,10 @@ func zeroPad(b []byte) []byte {
 		return b
 	}
 
-	for i := len(b); i < 64; i++ {
-		b = append(b, 0)
-	}
+	nb := make([]byte, 64)
+	copy(nb, b)
 
-	return b
+	return nb
 }
 
 // Tx handles USB endpoint data outtake.
@@ -29,7 +29,7 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 	}
 
 	if h.state.lastOutboundIndex == 0 {
-		log.Println("found", len(h.state.outboundMsgs), "outbound messages")
+		flog.Logger.Println("found", len(h.state.outboundMsgs), "outbound messages")
 	}
 
 	if len(h.state.outboundMsgs) == 1 {
@@ -37,14 +37,14 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 		binary.Write(b, binary.LittleEndian, zeroPad(h.state.outboundMsgs[h.state.lastOutboundIndex]))
 
 		res = b.Bytes()
-		log.Println(res)
-		log.Println("finished processing messages, clearing buffers")
+		flog.Logger.Println(res)
+		flog.Logger.Println("finished processing messages, clearing buffers")
 		h.state.clear()
 		return
 	}
 
 	if h.state.lastOutboundIndex == len(h.state.outboundMsgs) {
-		log.Println("finished processing messages, clearing buffers")
+		flog.Logger.Println("finished processing messages, clearing buffers")
 		h.state.clear()
 		return
 	}
@@ -55,7 +55,7 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 
 	res = b.Bytes()
 
-	log.Println("processed message", h.state.lastOutboundIndex)
+	flog.Logger.Println("processed message", h.state.lastOutboundIndex)
 
 	return
 }
@@ -69,7 +69,7 @@ func (h *Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 
 	msgs, err := h.parseMsg(buf)
 	if err != nil {
-		log.Println(err)
+		flog.Logger.Println(err)
 		h.state.clear()
 		return
 	}
@@ -89,73 +89,83 @@ func (h *Handler) parseMsg(msg []byte) ([][]byte, error) {
 	cmd := msg[4]
 	isInit := isInitPkt(cmd)
 
-	log.Println("msg ", msg)
+	flog.Logger.Println("msg ", msg)
 
 	if isInit {
-		log.Println("found init packet")
-		ip := parseInitPkt(msg)
-
-		s, ok := h.state.sessions[ip.Channel()]
-		if !ok {
-			s = &session{}
-		}
-
-		log.Println("command:", ip.Cmd.String())
-
-		s.command = ip.Cmd
-		s.total = uint64(ip.PayloadLength)
-		s.data = make([]byte, 0, s.total)
-		s.data = append(s.data, ip.Data...)
-		s.leftToRead = uint64(int(ip.PayloadLength) - len(s.data))
-
-		h.state.sessions[ip.Channel()] = s
-
-		if s.total <= initPacketDataLen {
-			// handle everything as a single entity
-			return h.packetBuilder(s, ip)
-		}
-
-		h.state.accumulatingMsgs = true
+		return h.handleInitPacket(msg)
 	} else {
-		log.Println("found continuation packet")
-		cp := parseContinuationPkt(msg)
-
-		session, ok := h.state.sessions[cp.Channel()]
-		if !ok {
-			return nil, fmt.Errorf("new continuation packet with id 0x%X, which was not seen before", cp.ChannelID)
-		}
-
-		if cp.SequenceNumber != 0 && cp.SequenceNumber-session.lastSequence != 1 {
-			return nil, fmt.Errorf("found a continuation packet with non-sequential sequence number, expected %d but found %d", cp.SequenceNumber+1, session.lastSequence)
-		}
-
-		session.lastSequence = cp.SequenceNumber
-
-		lastSize := len(session.data)
-		// TODO: here we should count how many zeroes we should include in cp.Data, because some of them
-		// are used in the U2F protocol.
-
-		if session.leftToRead < continuationPacketDataLen {
-			session.data = append(session.data, cp.Data[:session.leftToRead]...)
-			session.leftToRead = 0
-		} else {
-			session.data = append(session.data, cp.Data...)
-			session.leftToRead -= uint64(len(cp.Data))
-		}
-
-		log.Printf("read new %d bytes, last size %d, new size %d, total expected size %d", len(cp.Data), lastSize, len(session.data), session.total)
-
-		if uint64(len(session.data)) > session.total {
-			return nil, fmt.Errorf("read %d bytes while expecting %d", len(session.data), session.total)
-		}
-
-		if uint64(len(session.data)) != session.total {
-			return nil, nil // we still need more data
-		}
-
-		log.Printf("finished reading data for channel 0x%X, total bytes %d", cp.Channel(), len(session.data))
-		return h.packetBuilder(session, cp)
+		return h.handleContinuationPacket(msg)
 	}
+}
+
+// handleContinuationPacket handles parsing and state update for continuation packets.
+func (h *Handler) handleContinuationPacket(msg []byte) ([][]byte, error) {
+	flog.Logger.Println("found continuation packet")
+	cp := parseContinuationPkt(msg)
+
+	session, ok := h.state.sessions[cp.Channel()]
+	if !ok {
+		return nil, fmt.Errorf("new continuation packet with id 0x%X, which was not seen before", cp.ChannelID)
+	}
+
+	if cp.SequenceNumber != 0 && cp.SequenceNumber-session.lastSequence != 1 {
+		return nil, fmt.Errorf("found a continuation packet with non-sequential sequence number, expected %d but found %d", cp.SequenceNumber+1, session.lastSequence)
+	}
+
+	session.lastSequence = cp.SequenceNumber
+
+	lastSize := len(session.data)
+	// TODO: here we should count how many zeroes we should include in cp.Data, because some of them
+	// are used in the U2F protocol.
+
+	if session.leftToRead < continuationPacketDataLen {
+		session.data = append(session.data, cp.Data[:session.leftToRead]...)
+		session.leftToRead = 0
+	} else {
+		session.data = append(session.data, cp.Data...)
+		session.leftToRead -= uint64(len(cp.Data))
+	}
+
+	flog.Logger.Printf("read new %d bytes, last size %d, new size %d, total expected size %d", len(cp.Data), lastSize, len(session.data), session.total)
+
+	if len(session.data) > int(session.total) {
+		return nil, fmt.Errorf("read %d bytes while expecting %d", len(session.data), session.total)
+	}
+
+	if len(session.data) != int(session.total) {
+		return nil, nil // we still need more data
+	}
+
+	flog.Logger.Printf("finished reading data for channel 0x%X, total bytes %d", cp.Channel(), len(session.data))
+	return h.packetBuilder(session, cp)
+}
+
+// handleInitPacket handles parsing and state setup for initialization packets.
+func (h *Handler) handleInitPacket(msg []byte) ([][]byte, error) {
+	flog.Logger.Println("found init packet")
+	ip := parseInitPkt(msg)
+
+	s, ok := h.state.sessions[ip.Channel()]
+	if !ok {
+		s = &session{}
+	}
+
+	flog.Logger.Println("command:", ip.Cmd.String())
+
+	s.command = ip.Cmd
+	s.total = uint64(ip.PayloadLength)
+	s.data = make([]byte, 0, s.total)
+	s.data = append(s.data, ip.Data...)
+	s.leftToRead = uint64(int(ip.PayloadLength) - len(s.data))
+
+	h.state.sessions[ip.Channel()] = s
+
+	if s.total <= initPacketDataLen {
+		// handle everything as a single entity
+		return h.packetBuilder(s, ip)
+	}
+
+	h.state.accumulatingMsgs = true
 
 	return nil, nil
 }
@@ -201,7 +211,7 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 		return nil, fmt.Errorf("found message for broadcast chan but command was %d instead of U2FHID_INIT", ip.Command())
 	}
 
-	log.Println("found cmdInit on broadcast channel")
+	flog.Logger.Println("found cmdInit on broadcast channel")
 
 	b := new(bytes.Buffer)
 	u := initResponse{
@@ -229,7 +239,7 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 
 // packetBuilder builds response packages for a given session, depending on session.command.
 func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
-	log.Println("message", u2fHIDCommand(pkt.Command()))
+	flog.Logger.Println("message", u2fHIDCommand(pkt.Command()))
 	switch session.command {
 	case cmdInit:
 		ip, ok := pkt.(initPacket)
@@ -268,7 +278,7 @@ func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, erro
 		h.state.lastChannelID = pkt.Channel()
 		return pkts, nil
 	default:
-		log.Printf("command %d not found, sending error payload", session.command)
+		flog.Logger.Printf("command %d not found, sending error payload", session.command)
 		return generateError(invalidCmd, session, pkt), nil
 	}
 }
