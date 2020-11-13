@@ -1,4 +1,5 @@
 fuzz/suppressions
+fuzz/fuzz-fuzz.zip
 fuzz/crashes
 cmd/gen-cert/gen-cert
 .idea
