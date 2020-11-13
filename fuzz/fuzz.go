@@ -31,7 +31,9 @@ func (f *fuzzCounter) UserPresence() bool {
 	return true
 }
 
-func Fuzz(data []byte) int {
+var hid *u2fhid.Handler
+
+func init() {
 	l := &fuzzCounter{}
 	k := keyring.New([]byte("key"), l)
 
@@ -41,11 +43,14 @@ func Fuzz(data []byte) int {
 		panic("can't init u2ftoken")
 	}
 
-	hid, err := u2fhid.NewHandler(token)
+	hid, err = u2fhid.NewHandler(token)
 	if err != nil {
 		panic("can't init u2fhid")
 	}
 
+}
+
+func Fuzz(data []byte) int {
 	out, err := hid.Rx(data, nil)
 	if err != nil {
 		if out != nil {
