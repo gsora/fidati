@@ -1,3 +1,5 @@
+fuzz/suppressions
+fuzz/crashes
 cmd/gen-cert/gen-cert
 .idea
 .vscode
