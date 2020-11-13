@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
+	"math"
 
 	"github.com/gsora/fidati/keyring"
 )
@@ -154,7 +155,15 @@ func (t *Token) ParseRequest(req []byte) (Request, error) {
 	dataLen := binary.BigEndian.Uint16(req[5:7])
 
 	if dataLen != 0 {
-		ret.Data = req[7 : dataLen+7] // first 6 bytes are header tags, minus one for array indexing reasons :-)
+		sliceEnd := dataLen + 7
+		if sliceEnd < dataLen { // overflow detected
+			sliceEnd = math.MaxUint16
+		}
+
+		if int(sliceEnd) > len(req) {
+			return Request{}, fmt.Errorf("trying to read until %d, but request data len is %d", sliceEnd, len(req))
+		}
+		ret.Data = req[7:sliceEnd] // first 6 bytes are header tags, minus one for array indexing reasons :-)
 	}
 
 	// Ne initial offset = 6 (header bytes) + dataLen

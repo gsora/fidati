@@ -125,7 +125,10 @@ type u2fHIDState struct {
 
 // clear deletes the last channel id session, and sets outbound messages and its index, and channel id to zero.s
 func (u *u2fHIDState) clear() {
-	u.sessions[u.lastChannelID].clear()
+	if s, ok := u.sessions[u.lastChannelID]; ok {
+		s.clear()
+	}
+
 	u.outboundMsgs = nil
 	u.lastOutboundIndex = 0
 	u.lastChannelID = 0
