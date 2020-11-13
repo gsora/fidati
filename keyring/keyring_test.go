@@ -162,6 +162,7 @@ func TestKeyring_Register(t *testing.T) {
 			pubKey, keyHandle, err := tt.kr.Register(tt.appID)
 
 			if tt.wantErr {
+				t.Log("error:", err)
 				require.Error(t, err)
 				require.Nil(t, pubKey)
 				require.Nil(t, keyHandle)
@@ -354,6 +355,7 @@ func TestKeyring_Authenticate(t *testing.T) {
 			authSig, counter, err := tt.kr.Authenticate(tt.args.appID, tt.args.challenge, tt.args.keyHandle, true)
 
 			if tt.wantErr {
+				t.Log("error:", err)
 				require.Error(t, err)
 				require.Nil(t, authSig)
 				require.Zero(t, counter)
