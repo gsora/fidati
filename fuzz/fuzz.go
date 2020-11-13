@@ -51,11 +51,9 @@ func init() {
 }
 
 func Fuzz(data []byte) int {
-	out, err := hid.Rx(data, nil)
+	_, err := hid.Rx(data, nil)
 	if err != nil {
-		if out != nil {
-			return 1 // we got an error but somehow also some data?
-		}
+		// got an error, nothing interesting
 		return 0
 	}
 
