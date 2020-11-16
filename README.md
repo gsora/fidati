@@ -2,6 +2,8 @@
 
 `fidati` is a FIDO2 U2F token implementation for the F-Secure USB Armory Mk.II, written in Go by leveraging the [Tamago](https://github.com/f-secure-foundry/tamago) compiler.
 
+This repository holds a developer-friendly Tamago firmware, for a more user-friendly one check out [`GoKey`](https://github.com/f-secure-foundry/gokey).
+
 ## Project status: **PoC**
 
 This project is still very much a Proof-of-Concept and should be handled as such: **there are exactly zero guarantees about the safety/security of fidati**.
