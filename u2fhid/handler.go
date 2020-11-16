@@ -2,6 +2,7 @@ package u2fhid
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -213,6 +214,12 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 
 	flog.Logger.Println("found cmdInit on broadcast channel")
 
+	assignedChannelID := make([]byte, 4)
+	_, err := rand.Read(assignedChannelID)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate random channel ID, %w", err)
+	}
+
 	b := new(bytes.Buffer)
 	u := initResponse{
 		standardResponse: standardResponse{
@@ -227,9 +234,10 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 	}
 
 	copy(u.Nonce[:], ip.Data)
+	copy(u.AssignedChannelID[:], assignedChannelID)
 
 	binary.BigEndian.PutUint16(u.Count[:], 17)
-	err := binary.Write(b, binary.LittleEndian, u)
+	err = binary.Write(b, binary.LittleEndian, u)
 	if err != nil {
 		return nil, fmt.Errorf("cannot serialize initResponse: %w", err)
 	}

@@ -4,6 +4,7 @@ package u2fhid
 type initResponse struct {
 	standardResponse
 	Nonce              [8]byte
+	AssignedChannelID  [4]byte
 	ProtocolVersion    uint8
 	MajorDeviceVersion uint8
 	MinorDeviceVersion uint8
