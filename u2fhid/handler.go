@@ -178,34 +178,6 @@ func numPackets(rawMsgLen int) int {
 	return int(math.Ceil(float64(rawMsgLen) / float64(continuationPacketDataLen)))
 }
 
-// split splits msg into 64 bytes units.
-func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
-	numPktsNoInitial := numPackets(len(msg) - 57) // we exclude a packet, which will be built separately
-
-	pktAmount := numPktsNoInitial + 1
-	ret := make([][]byte, 0, pktAmount)
-
-	lastIndex := 0
-
-	for i := 0; i < pktAmount; i++ {
-		if i == 0 {
-			ret = append(ret, msg[0:sizeFirst])
-			lastIndex = sizeFirst
-			continue
-		}
-
-		if i+1 == pktAmount {
-			ret = append(ret, msg[lastIndex:])
-			return ret
-		}
-
-		ret = append(ret, msg[lastIndex:lastIndex+sizeRest])
-		lastIndex = lastIndex + sizeRest
-	}
-
-	return ret
-}
-
 // broadcastReq responds to broadcast messages, sent with channel id [255, 255, 255, 255].
 func broadcastReq(ip initPacket) ([]byte, error) {
 	if ip.Cmd != cmdInit {
@@ -287,6 +259,6 @@ func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, erro
 		return pkts, nil
 	default:
 		flog.Logger.Printf("command %d not found, sending error payload", session.command)
-		return generateError(invalidCmd, session, pkt), nil
+		return generateError(invalidCmd, pkt), nil
 	}
 }
