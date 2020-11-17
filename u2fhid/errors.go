@@ -43,7 +43,7 @@ const (
 )
 
 // generateError generates a u2fError payload ready to be sent on the wire.
-func generateError(code u2fError, session *session, pkt u2fPacket) [][]byte {
+func generateError(code u2fError, pkt u2fPacket) [][]byte {
 	b := new(bytes.Buffer)
 
 	u := standardResponse{
