@@ -3,6 +3,7 @@ package u2fhid
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -156,6 +157,10 @@ func isInitPkt(cmd uint8) bool {
 
 // genPackets generates response packets for msg, command cmd and channel id chanID.
 func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error) {
+	if msg == nil {
+		return nil, errors.New("message is nil")
+	}
+
 	numPktsNoInitial := numPackets(len(msg) - 64) // we exclude a packet, which will be built separately
 
 	ret := make([][]byte, 0, numPktsNoInitial+1)
@@ -195,4 +200,43 @@ func genPackets(msg []byte, cmd u2fHIDCommand, chanID [4]byte) ([][]byte, error)
 	}
 
 	return ret, nil
+}
+
+// split splits msg into 64 bytes units.
+func split(sizeFirst int, sizeRest int, msg []byte) [][]byte {
+	if msg == nil {
+		return [][]byte{}
+	}
+
+	numPktsNoInitial := numPackets(len(msg) - 57) // we exclude a packet, which will be built separately
+
+	pktAmount := numPktsNoInitial + 1
+	ret := make([][]byte, 0, pktAmount)
+
+	if len(msg) < sizeFirst { // whole message can stay in a single packet
+		r := make([]byte, sizeFirst)
+		copy(r, msg)
+		ret = append(ret, r)
+		pktAmount = -1
+	}
+
+	lastIndex := 0
+
+	for i := 0; i < pktAmount; i++ {
+		if i == 0 {
+			ret = append(ret, msg[0:sizeFirst])
+			lastIndex = sizeFirst
+			continue
+		}
+
+		if i+1 == pktAmount {
+			ret = append(ret, msg[lastIndex:])
+			return ret
+		}
+
+		ret = append(ret, msg[lastIndex:lastIndex+sizeRest])
+		lastIndex = lastIndex + sizeRest
+	}
+
+	return ret
 }
