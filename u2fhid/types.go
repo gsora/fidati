@@ -5,9 +5,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-
-	"github.com/gsora/fidati/u2ftoken"
 )
+
+// Token represents a unit which can handle U2F messages.
+type Token interface {
+	// HandleMessage handles cmdMsg payloads, and return an appropriate response
+	// for the underlying command.
+	HandleMessage([]byte) []byte
+}
 
 // u2fHIDReport is a byte slice holding a standard U2F HID report.
 type u2fHIDReport []byte
@@ -63,8 +68,8 @@ const (
 
 // Handler holds methods for sending and receiving packets.
 type Handler struct {
-	// u2ftoken instance
-	token *u2ftoken.Token
+	// token instance
+	token Token
 
 	// u2fhid state
 	state *u2fHIDState
@@ -72,7 +77,7 @@ type Handler struct {
 
 // NewHandler returns a new Handler instance with a given u2ftoken.Token.
 // Token cannot be nil.
-func NewHandler(token *u2ftoken.Token) (*Handler, error) {
+func NewHandler(token Token) (*Handler, error) {
 	if token == nil {
 		return nil, errors.New("token is nil")
 	}
@@ -123,10 +128,11 @@ type u2fHIDState struct {
 	lastChannelID     uint32
 }
 
-// clear deletes the last channel id session, and sets outbound messages and its index, and channel id to zero.s
+// clear deletes the last channel id session, and sets outbound messages and its index, and channel id to zero.
 func (u *u2fHIDState) clear() {
 	u.sessions[u.lastChannelID].clear()
 	u.outboundMsgs = nil
 	u.lastOutboundIndex = 0
 	u.lastChannelID = 0
+	u.accumulatingMsgs = false
 }
