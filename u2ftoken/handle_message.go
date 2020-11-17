@@ -9,12 +9,18 @@ import (
 // a ready-made instance of the errConditionNotSatisfied error.
 var notSatisfied = errorResponse(errConditionNotSatisfied).Bytes()
 
-// HandleMessage handles a request, and returns a response byte slice.
-func (t *Token) HandleMessage(req Request) []byte {
+// HandleMessage handles a message, and returns a response byte slice.
+func (t *Token) HandleMessage(data []byte) []byte {
+	req, err := t.ParseRequest(data)
+	if err != nil {
+		flog.Logger.Printf("cannot parse request, %s", err)
+		return notSatisfied
+	}
+
 	var resp Response
 	var handleErr error
 
-	flog.Logger.Printf("message type: %s\n", req.Command)
+	flog.Logger.Printf("request: %+v", req)
 
 	switch req.Command {
 	case Version:
