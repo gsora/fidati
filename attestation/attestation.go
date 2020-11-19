@@ -10,9 +10,9 @@ import (
 // ErrNotPem represents a PEM decoding error.
 var ErrNotPEM = errors.New("not a PEM-encoded block")
 
-// ParseX509 returns the X.509 data contained in c.
+// ParsePEM returns data block contained into c.
 // Returns an error if c is not a PEM-encoded block.
-func ParseX509(c []byte) ([]byte, error) {
+func ParsePEM(c []byte) ([]byte, error) {
 	certPem, _ := pem.Decode(c)
 	if certPem == nil {
 		return nil, ErrNotPEM
