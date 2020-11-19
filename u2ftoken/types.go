@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/gsora/fidati/attestation"
 	"github.com/gsora/fidati/keyring"
 )
 
@@ -111,12 +112,12 @@ type Token struct {
 // attCert must be a PEM-encoded certificate, while attPrivKey must be a X.509-encoded
 // ECDSA private key.
 func New(k *keyring.Keyring, attCert, attPrivKey []byte) (*Token, error) {
-	cert, err := parseCert(attCert)
+	cert, err := attestation.ParseX509(attCert)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse attestation certificate, %w", err)
 	}
 
-	key, err := parseKey(attPrivKey)
+	key, err := attestation.ParseKey(attPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse attestation certificate, %w", err)
 	}
