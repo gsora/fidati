@@ -112,7 +112,7 @@ type Token struct {
 // attCert must be a PEM-encoded certificate, while attPrivKey must be a X.509-encoded
 // ECDSA private key.
 func New(k *keyring.Keyring, attCert, attPrivKey []byte) (*Token, error) {
-	cert, err := attestation.ParsePEM(attCert)
+	cert, _, err := attestation.ParseCertificate(attCert)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse attestation certificate, %w", err)
 	}

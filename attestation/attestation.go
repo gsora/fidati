@@ -5,20 +5,27 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 // ErrNotPem represents a PEM decoding error.
 var ErrNotPEM = errors.New("not a PEM-encoded block")
 
-// ParsePEM returns data block contained into c.
-// Returns an error if c is not a PEM-encoded block.
-func ParsePEM(c []byte) ([]byte, error) {
+// ParseCertificate parses a X.509 certificate from the data contained in the
+// PEM data block.
+// Returns an error when c is not valid PEM data, or a valid X.509 certificate.
+func ParseCertificate(c []byte) ([]byte, *x509.Certificate, error) {
 	certPem, _ := pem.Decode(c)
 	if certPem == nil {
-		return nil, ErrNotPEM
+		return nil, nil, ErrNotPEM
 	}
 
-	return certPem.Bytes, nil
+	cert, err := x509.ParseCertificate(certPem.Bytes)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid X.509 certificate, %w", err)
+	}
+
+	return certPem.Bytes, cert, nil
 }
 
 // ParseKey parses a PEM-encoded ECDSA private key.
