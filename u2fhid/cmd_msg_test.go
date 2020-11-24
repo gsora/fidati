@@ -19,6 +19,7 @@ func TestHandler_handleMsg(t *testing.T) {
 			"underlying token returns no error",
 			&fakeToken{
 				shouldReturnData: true,
+				data:             []byte("data"),
 			},
 			require.NoError,
 			require.NotEmpty,
