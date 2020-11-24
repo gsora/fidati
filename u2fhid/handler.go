@@ -109,10 +109,21 @@ func (h *Handler) handleContinuationPacket(msg []byte) ([][]byte, error) {
 		return nil, fmt.Errorf("new continuation packet with id 0x%X, which was not seen before", cp.ChannelID)
 	}
 
-	if cp.SequenceNumber != 0 && cp.SequenceNumber-session.lastSequence != 1 {
+	var seqError bool
+	switch {
+	case cp.SequenceNumber == 0:
+		if session.packetZeroSeen {
+			seqError = true
+		}
+	case cp.SequenceNumber-session.lastSequence != 1:
+		seqError = true
+	}
+
+	if seqError {
 		return nil, fmt.Errorf("found a continuation packet with non-sequential sequence number, expected %d but found %d", cp.SequenceNumber+1, session.lastSequence)
 	}
 
+	session.packetZeroSeen = true
 	session.lastSequence = cp.SequenceNumber
 
 	lastSize := len(session.data)
@@ -128,10 +139,6 @@ func (h *Handler) handleContinuationPacket(msg []byte) ([][]byte, error) {
 	}
 
 	flog.Logger.Printf("read new %d bytes, last size %d, new size %d, total expected size %d", len(cp.Data), lastSize, len(session.data), session.total)
-
-	if len(session.data) > int(session.total) {
-		return nil, fmt.Errorf("read %d bytes while expecting %d", len(session.data), session.total)
-	}
 
 	if len(session.data) != int(session.total) {
 		return nil, nil // we still need more data

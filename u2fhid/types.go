@@ -102,11 +102,12 @@ type u2fPacket interface {
 
 // session holds informations about a single operation currently happening (MSG, PING...).
 type session struct {
-	data         []byte
-	command      u2fHIDCommand
-	total        uint64
-	leftToRead   uint64
-	lastSequence uint8
+	data           []byte
+	command        u2fHIDCommand
+	total          uint64
+	leftToRead     uint64
+	lastSequence   uint8
+	packetZeroSeen bool
 }
 
 // clear clears a session, setting everything to their default values.
