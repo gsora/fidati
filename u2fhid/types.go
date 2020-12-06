@@ -115,8 +115,9 @@ func (s *session) clear() {
 	s.data = nil
 	s.command = 0
 	s.total = 0
-	s.lastSequence = 0
 	s.leftToRead = 0
+	s.lastSequence = 0
+	s.packetZeroSeen = false
 }
 
 // u2fHIDState holds the global state of the U2FHID token, keeping track of whether it is still accumulating messages,
