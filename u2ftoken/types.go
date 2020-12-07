@@ -28,22 +28,6 @@ const (
 	Version
 )
 
-// errorCode represents a U2F standard error code.
-//go:generate stringer -type=errorCode
-type errorCode uint16
-
-// Error implements the error interface.
-func (ec errorCode) Error() string {
-	return ec.String()
-}
-
-// Bytes returns the byte array representation of c.
-func (ec errorCode) Bytes() [2]byte {
-	var ret [2]byte
-	binary.BigEndian.PutUint16(ret[:], uint16(ec))
-	return ret
-}
-
 const (
 	// The command completed successfully without error.
 	noError errorCode = 0x9000
@@ -63,6 +47,22 @@ const (
 	// The Instruction of the request is not supported.
 	errInsNotSupported errorCode = 0x6D00
 )
+
+// errorCode represents a U2F standard error code.
+//go:generate stringer -type=errorCode
+type errorCode uint16
+
+// Error implements the error interface.
+func (ec errorCode) Error() string {
+	return ec.String()
+}
+
+// Bytes returns the byte array representation of c.
+func (ec errorCode) Bytes() [2]byte {
+	var ret [2]byte
+	binary.BigEndian.PutUint16(ret[:], uint16(ec))
+	return ret
+}
 
 // errorResponse returns a Response struct which wraps errCode.
 func errorResponse(errCode errorCode) Response {
