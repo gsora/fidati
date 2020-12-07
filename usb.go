@@ -102,15 +102,15 @@ func addEndpoints(conf *usb.InterfaceDescriptor) endpoints {
 	e.in.SetDefaults()
 	e.in.Attributes = 0x03
 	e.in.EndpointAddress = 0x81
-	e.in.MaxPacketSize = 63
-	e.in.Interval = 5
+	e.in.MaxPacketSize = 512
+	e.in.Interval = 1
 
 	e.out = &usb.EndpointDescriptor{}
 	e.out.SetDefaults()
 	e.out.Attributes = 0x03
 	e.out.EndpointAddress = 0x01
-	e.out.MaxPacketSize = 63
-	e.out.Interval = 5
+	e.out.MaxPacketSize = 512
+	e.out.Interval = 1
 
 	conf.Endpoints = append(conf.Endpoints, e.out, e.in)
 
