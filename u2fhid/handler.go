@@ -227,6 +227,26 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 // packetBuilder builds response packages for a given session, depending on session.command.
 func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, error) {
 	flog.Logger.Println("message", u2fHIDCommand(pkt.Command()))
+
+	if ch, handled := h.commandMappings[session.command]; handled {
+		flog.Logger.Println("found command to be handled via command mappings:", session.command)
+
+		pkts, err := genPackets(
+			ch(session.data[:session.total]),
+			session.command,
+			pkt.ChannelBytes(),
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("error while handling msg, %w", err)
+		}
+
+		h.state.accumulatingMsgs = false
+		h.state.lastChannelID = pkt.Channel()
+		return pkts, nil
+	}
+
+	// use standard u2fhid commands
 	switch session.command {
 	case cmdInit:
 		ip, ok := pkt.(initPacket)

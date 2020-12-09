@@ -51,6 +51,11 @@ var DefaultReport = u2fHIDReport{
 //go:generate stringer -type=u2fHIDCommand
 type u2fHIDCommand int
 
+func (c u2fHIDCommand) isVendorCommand() bool {
+	u := uint8(c)
+	return u >= VendorCommandFirst || u <= VendorCommandLast
+}
+
 const (
 	broadcastChan = 0xffffffff
 
@@ -64,7 +69,15 @@ const (
 	cmdLock u2fHIDCommand = 0x80 | 0x04
 	cmdWink u2fHIDCommand = 0x80 | 0x08
 	cmdSync u2fHIDCommand = 0x80 | 0x3c
+
+	// VendorCommandFirst is the first admissible vendor command identifier.
+	VendorCommandFirst = 0x80 | 0x40
+
+	// VendorCommandLast is the last admissible vendor command identifier.
+	VendorCommandLast = 0x80 | 0x7f
 )
+
+type CommandHandler func([]byte) []byte
 
 // Handler holds methods for sending and receiving packets.
 type Handler struct {
@@ -73,6 +86,9 @@ type Handler struct {
 
 	// u2fhid state
 	state *u2fHIDState
+
+	// mapping between u2fHIDCommands and Token instances
+	commandMappings map[u2fHIDCommand]CommandHandler
 }
 
 // NewHandler returns a new Handler instance with a given u2ftoken.Token.
@@ -83,11 +99,31 @@ func NewHandler(token Token) (*Handler, error) {
 	}
 
 	return &Handler{
-		token: token,
+		token:           token,
+		commandMappings: make(map[u2fHIDCommand]CommandHandler),
 		state: &u2fHIDState{
 			sessions: map[uint32]*session{},
 		},
 	}, nil
+}
+
+// AddMapping adds a new CommandHandler mapping for a given command.
+// Returns error if there's already a mapping for command, or if it is not defined
+// between VendorCommandFirst and VendorCommandLast.
+// Each mapping will be handled like a cmdMsg, meaning that the input for ch will be the whole session
+// data, while its output will be framed and sent over the wire.
+func (h *Handler) AddMapping(command u2fHIDCommand, ch CommandHandler) error {
+	if _, mappingExists := h.commandMappings[command]; mappingExists {
+		return errors.New("command mapping already exists")
+	}
+
+	if !command.isVendorCommand() {
+		return errors.New("command must be between U2FHID_VENDOR_FIRST and U2FHID_VENDOR_LAST")
+	}
+
+	h.commandMappings[command] = ch
+
+	return nil
 }
 
 // u2fPacket is implemented by U2F HID packets, and exposes methods that must be implemented
