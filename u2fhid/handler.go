@@ -199,6 +199,8 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 		return nil, fmt.Errorf("cannot generate random channel ID, %w", err)
 	}
 
+	flog.Logger.Println("created new channel id", assignedChannelID)
+
 	b := new(bytes.Buffer)
 	u := initResponse{
 		standardResponse: standardResponse{
@@ -221,6 +223,7 @@ func broadcastReq(ip initPacket) ([]byte, error) {
 		return nil, fmt.Errorf("cannot serialize initResponse: %w", err)
 	}
 
+	flog.Logger.Println("finished broadcastReq")
 	return b.Bytes(), nil
 }
 
@@ -259,6 +262,7 @@ func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, erro
 		}
 
 		h.state.lastChannelID = broadcastChan
+		h.state.accumulatingMsgs = false
 
 		ret, err := broadcastReq(ip)
 		if err != nil {
