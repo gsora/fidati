@@ -14,7 +14,7 @@ LDFLAGS = -s -w -T $(TEXT_START) -E _rt0_arm_tamago -R 0x1000 -X 'main.Build=${B
 GOFLAGS = -tags ${TARGET} -ldflags "${LDFLAGS}"
 SHELL = /bin/bash
 
-.PHONY: clean install test
+.PHONY: clean install test fidati-linux
 
 #### primary targets ####
 
@@ -68,6 +68,8 @@ install: $(APP)
 	@scp $(APP) usbarmory@10.0.0.1:/boot/tamago
 	@ssh usbarmory@10.0.0.1 sudo reboot
 
+fidati-linux:
+	$(TAMAGO) build -tags='fidati_logs' -o ./fidati-linux ./cmd/fidati-linux 
 #### dependencies ####
 $(APP): check_tamago
 	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
