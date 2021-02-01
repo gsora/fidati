@@ -1,4 +1,6 @@
 cmd/gen-cert/gen-cert
+fidati-linux
+!cmd/fidati-linux/
 .idea
 .vscode
 fidati
