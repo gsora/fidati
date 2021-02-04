@@ -133,7 +133,7 @@ func addHIDClassDescriptor(conf *usb.InterfaceDescriptor) {
 
 // hidSetup returns a custom setup function for device.
 func hidSetup(device *usb.Device) usb.SetupFunction {
-	return func(setup *usb.SetupData) (in []byte, done, ack bool, err error) {
+	return func(setup *usb.SetupData) (in []byte, ack, done bool, err error) {
 		bDescriptorType := setup.Value & 0xff
 
 		flog.Logger.Println("descriptor type:", bDescriptorType, setup)
