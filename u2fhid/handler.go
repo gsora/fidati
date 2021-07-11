@@ -235,7 +235,7 @@ func (h *Handler) packetBuilder(session *session, pkt u2fPacket) ([][]byte, erro
 		flog.Logger.Println("found command to be handled via command mappings:", session.command)
 
 		pkts, err := genPackets(
-			ch(session.data[:session.total]),
+			ch(session.data[:session.total], pkt.Channel()),
 			session.command,
 			pkt.ChannelBytes(),
 		)
