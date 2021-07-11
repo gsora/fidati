@@ -10,7 +10,7 @@ import (
 var notSatisfied = errorResponse(errConditionNotSatisfied).Bytes()
 
 // HandleMessage handles a message, and returns a response byte slice.
-func (t *Token) HandleMessage(data []byte) []byte {
+func (t *Token) HandleMessage(data []byte, _ uint32) []byte {
 	req, err := t.ParseRequest(data)
 	if err != nil {
 		flog.Logger.Printf("cannot parse request, %s", err)
