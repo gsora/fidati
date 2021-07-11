@@ -11,7 +11,7 @@ import (
 type Token interface {
 	// HandleMessage handles cmdMsg payloads, and return an appropriate response
 	// for the underlying command.
-	HandleMessage([]byte) []byte
+	HandleMessage(message []byte, sessionID uint32) []byte
 }
 
 // u2fHIDReport is a byte slice holding a standard U2F HID report.
@@ -77,7 +77,7 @@ const (
 	VendorCommandLast = 0x80 | 0x7f
 )
 
-type CommandHandler func([]byte) []byte
+type CommandHandler func(dataBytes []byte, sessionID uint32) []byte
 
 // Handler holds methods for sending and receiving packets.
 type Handler struct {
