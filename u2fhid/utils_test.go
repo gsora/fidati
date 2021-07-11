@@ -12,7 +12,7 @@ type fakeToken struct {
 	data             []byte
 }
 
-func (f *fakeToken) HandleMessage(b []byte) []byte {
+func (f *fakeToken) HandleMessage(b []byte, session uint32) []byte {
 	if f.shouldReturnData {
 		return f.data
 	}
