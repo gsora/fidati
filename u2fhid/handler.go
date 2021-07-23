@@ -35,7 +35,7 @@ func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
 
 	if len(h.state.outboundMsgs) == 1 {
 		b := &bytes.Buffer{}
-		binary.Write(b, binary.LittleEndian, zeroPad(h.state.outboundMsgs[h.state.lastOutboundIndex]))
+		binary.Write(b, binary.LittleEndian, zeroPad(h.state.outboundMsgs[0]))
 
 		res = b.Bytes()
 		flog.Logger.Println(res)
