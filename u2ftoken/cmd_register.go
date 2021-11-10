@@ -29,7 +29,7 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 	challengeParam := req.Data[:32]
 	appID := req.Data[32:]
 
-	newKey, keyHandle, err := t.keyring.Register(appID)
+	newKey, keyHandle, err := t.keyring.Register(appID, nil)
 	if err != nil {
 		return Response{}, err
 	}
