@@ -3,6 +3,7 @@ package u2ftoken
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 
 	"github.com/gsora/fidati/internal/flog"
 )
@@ -25,11 +26,12 @@ func (t *Token) handleAuthenticate(req Request) (Response, error) {
 
 	flog.Logger.Println("control byte ", controlByte)
 
+	flog.Logger.Println("data", hex.EncodeToString(req.Data))
 	challengeParam := req.Data[0:32]
 	appID := req.Data[32:64]
 	khLen := req.Data[64]
 
-	flog.Logger.Printf("challenge len %d, app param len %d, khlen %d", len(challengeParam), len(appID), khLen)
+	flog.Logger.Printf("challenge len %d, app param len %d, khlen %d, total len data %d\n", len(challengeParam), len(appID), khLen, len(req.Data))
 
 	if len(req.Data) != int(minimumLen+khLen) {
 		flog.Logger.Printf("len request data %d different from minimumLen+khLen %d", len(req.Data), int(minimumLen+khLen))
@@ -38,6 +40,29 @@ func (t *Token) handleAuthenticate(req Request) (Response, error) {
 	}
 
 	keyHandle := req.Data[minimumLen : minimumLen+khLen]
+
+	flog.Logger.Println("requesting appID:", hex.EncodeToString(appID))
+	flog.Logger.Println("requesting keyHandle:", hex.EncodeToString(keyHandle))
+
+	// check that appID derives the same keyHandle we received
+	nonce := t.keyring.NonceFromKeyHandle(keyHandle)
+	if nonce == nil {
+		flog.Logger.Println("cannot obtain nonce from provided key handle")
+		return Response{}, errWrongData
+	}
+
+	_, derivedKeyHandle, err := t.keyring.Register(appID, nonce)
+	if err != nil {
+		flog.Logger.Println("cannot register key:", err)
+		return Response{}, errWrongData
+	}
+
+	flog.Logger.Println("generated keyhandle from appID:", hex.EncodeToString(derivedKeyHandle))
+
+	if !bytes.Equal(derivedKeyHandle, keyHandle) {
+		flog.Logger.Println("derived key handle and provided key handle don't match")
+		return Response{}, errWrongData
+	}
 
 	userPresence := t.keyring.Counter.UserPresence()
 
