@@ -63,7 +63,8 @@ func (k *Keyring) NonceFromKeyHandle(kh []byte) []byte {
 
 // Register deterministically derives an ECDSA public key given an application ID.
 // It also returns a key handle (also deterministic) and an error.
-func (k *Keyring) Register(appID []byte) (*ecdsa.PublicKey, []byte, error) {
+// If nonce is not nil, it will be used for the derivation process.
+func (k *Keyring) Register(appID []byte, nonce []byte) (*ecdsa.PublicKey, []byte, error) {
 	if err := k.validate(); err != nil {
 		return nil, nil, err
 	}
@@ -72,13 +73,16 @@ func (k *Keyring) Register(appID []byte) (*ecdsa.PublicKey, []byte, error) {
 		return nil, nil, errors.New("appID is nil")
 	}
 
-	nonce, err := nonceFunc()
-	if err != nil {
-		return nil, nil, err
+	if nonce == nil {
+		var err error
+		nonce, err = nonceFunc()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	mac := hmac.New(sha256.New, k.MasterKey)
-	_, err = mac.Write(appID)
+	_, err := mac.Write(appID)
 	if err != nil {
 		return nil, nil, err
 	}
