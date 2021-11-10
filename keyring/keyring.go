@@ -51,6 +51,16 @@ func New(mk []byte, counter Counter) *Keyring {
 	}
 }
 
+// NonceFromKeyHandle returns the nonce from a given keyhandle.
+// Assumes SHA-256 as hashing function.
+func (k *Keyring) NonceFromKeyHandle(kh []byte) []byte {
+	if len(kh) < sha256.Size {
+		return nil
+	}
+
+	return kh[sha256.Size:]
+}
+
 // Register deterministically derives an ECDSA public key given an application ID.
 // It also returns a key handle (also deterministic) and an error.
 func (k *Keyring) Register(appID []byte) (*ecdsa.PublicKey, []byte, error) {
