@@ -69,7 +69,7 @@ install: $(APP)
 	@ssh usbarmory@10.0.0.1 sudo reboot
 
 fidati-linux:
-	$(TAMAGO) build -tags='fidati_logs' -o ./fidati-linux ./cmd/fidati-linux 
+	$(TAMAGO) build -tags='fidati_logs' -gcflags "all=-N -l" -o ./fidati-linux ./cmd/fidati-linux 
 #### dependencies ####
 $(APP): check_tamago
 	$(GOENV) $(TAMAGO) build ${GOFLAGS} -o ${APP} ./firmware/
