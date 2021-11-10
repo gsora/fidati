@@ -6,6 +6,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 
 	"github.com/gsora/fidati/internal/flog"
 )
@@ -53,6 +54,10 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 		pubkey,
 	)
 
+	flog.Logger.Println("data", hex.EncodeToString(req.Data))
+	flog.Logger.Println("registered appID:", hex.EncodeToString(appID))
+	flog.Logger.Println("registered keyhandle:", hex.EncodeToString(keyHandle))
+
 	sph := sha256.Sum256(sigPayload)
 	spHash := sph[:]
 
@@ -63,8 +68,12 @@ func (t *Token) handleRegister(req Request) (Response, error) {
 
 	flog.Logger.Println("sign len:", len(sign))
 	resp.Write(sign)
+
+	rb := resp.Bytes()
+	flog.Logger.Println("response bytes:", hex.EncodeToString(rb))
+
 	return Response{
-		Data:       resp.Bytes(),
+		Data:       rb,
 		StatusCode: noError.Bytes(),
 	}, nil
 }
