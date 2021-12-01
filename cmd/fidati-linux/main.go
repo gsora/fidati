@@ -3,8 +3,8 @@
 package main
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -37,6 +37,11 @@ func cliArgs() (hidg, configfsPath string, mustClean bool) {
 	return
 }
 
+func hidgExists(path string) bool {
+	_, err := os.Stat(path)
+	return !errors.Is(err, os.ErrNotExist)
+}
+
 func main() {
 	hidg, configfsPath, mustClean := cliArgs()
 
@@ -48,8 +53,13 @@ func main() {
 		return
 	}
 
-	if err := configureHidg(configfsPath); err != nil {
-		panic(err)
+	if !hidgExists(hidg) {
+		log.Println("configuring hidg")
+		if err := configureHidg(configfsPath); err != nil {
+			panic(err)
+		}
+	} else {
+		log.Println("hidg already configured, using pre-existing one")
 	}
 
 	sigs := make(chan os.Signal, 1)
@@ -111,12 +121,7 @@ func main() {
 
 	<-sigs
 
-	fmt.Println()
-	log.Println("cleaning...")
-
-	if err := cleanupHidg(configfsPath); err != nil {
-		panic(err)
-	}
+	log.Println("exiting, call this binary with the '-clean' flag to clean hidg entries")
 }
 
 func genKeyring(secret []byte, counter keyring.Counter) *keyring.Keyring {
