@@ -1,8 +1,8 @@
 # `fidati`: DIY FIDO2 U2F token
 
-`fidati` is a FIDO2 U2F token implementation for the F-Secure USB Armory Mk.II, written in Go by leveraging the [Tamago](https://github.com/f-secure-foundry/tamago) compiler.
+`fidati` is a FIDO2 U2F token implementation for the F-Secure USB Armory Mk.II, written in Go by leveraging the [Tamago](https://github.com/usbarmory/tamago) compiler.
 
-This repository holds a developer-friendly Tamago firmware, for a more user-friendly one check out [`GoKey`](https://github.com/f-secure-foundry/gokey).
+This repository holds a developer-friendly Tamago firmware, for a more user-friendly one check out [`GoKey`](https://github.com/usbarmory/gokey).
 
 ## Project status: **PoC**
 
@@ -65,7 +65,7 @@ $ make imx
 
 This command will produce a i.MX native image, `fidati.imx`, which can be flashed to either the internal Armory eMMC or a microSD.
 
-Refer to [these instructions](https://github.com/f-secure-foundry/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-imx-native-images) for further instructions.
+Refer to [these instructions](https://github.com/usbarmory/usbarmory/wiki/Boot-Modes-(Mk-II)#flashing-imx-native-images) for further instructions.
 
 ## Usage as a library
 

@@ -1,4 +1,4 @@
-# Based on http://github.com/f-secure-foundry/tamago-example
+# Based on http://github.com/usbarmory/tamago-example
 
 BUILD_USER = $(shell whoami)
 BUILD_HOST = $(shell hostname)
@@ -30,27 +30,26 @@ elf: $(APP)
 
 check_tamago:
 	@if [ "${TAMAGO}" == "" ] || [ ! -f "${TAMAGO}" ]; then \
-		echo 'You need to set the TAMAGO variable to a compiled version of https://github.com/f-secure-foundry/tamago-go'; \
+		echo 'You need to set the TAMAGO variable to a compiled version of https://github.com/usbarmory/tamago-go'; \
 		exit 1; \
 	fi
 
 check_usbarmory_git:
 	@if [ "${USBARMORY_GIT}" == "" ]; then \
 		echo 'You need to set the USBARMORY_GIT variable to the path of a clone of'; \
-		echo '  https://github.com/f-secure-foundry/usbarmory'; \
+		echo '  https://github.com/usbarmory/usbarmory'; \
 		exit 1; \
 	fi
 
 check_hab_keys:
 	@if [ "${HAB_KEYS}" == "" ]; then \
 		echo 'You need to set the HAB_KEYS variable to the path of secure boot keys'; \
-		echo 'See https://github.com/f-secure-foundry/usbarmory/wiki/Secure-boot-(Mk-II)'; \
+		echo 'See https://github.com/usbarmory/usbarmory/wiki/Secure-boot-(Mk-II)'; \
 		exit 1; \
 	fi
 
 dcd:
 	@if test "${TARGET}" = "usbarmory"; then \
-  		echo $(TAMAGO_PKG)\
 		cp -f $(GOMODCACHE)/$(TAMAGO_PKG)/board/f-secure/usbarmory/mark-two/imximage.cfg $(APP).dcd; \
 	elif test "${TARGET}" = "mx6ullevk"; then \
 		cp -f $(GOMODCACHE)/$(TAMAGO_PKG)/board/nxp/mx6ullevk/imximage.cfg $(APP).dcd; \
@@ -79,7 +78,7 @@ test: check_tamago
 
 $(APP).dcd: check_tamago
 $(APP).dcd: GOMODCACHE=$(shell ${TAMAGO} env GOMODCACHE)
-$(APP).dcd: TAMAGO_PKG=$(shell grep "github.com/f-secure-foundry/tamago v" go.mod | awk '{print $$1"@"$$2}')
+$(APP).dcd: TAMAGO_PKG=$(shell grep "github.com/usbarmory/tamago v" go.mod | awk '{print $$1"@"$$2}')
 $(APP).dcd: dcd
 
 $(APP).bin: $(APP)

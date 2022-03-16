@@ -8,8 +8,8 @@ import (
 
 	"github.com/gsora/fidati/firmware/leds"
 
-	usbarmory "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
-	"github.com/f-secure-foundry/tamago/soc/imx6"
+	usbarmory "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
+	"github.com/usbarmory/tamago/soc/imx6"
 
 	_ "github.com/gsora/fidati/firmware/certs"
 )
@@ -112,7 +112,7 @@ func rebootWatcher() {
 
 		if buf[0] == 'r' {
 			log.Println("rebooting...")
-			imx6.Reboot()
+			imx6.Reset()
 		}
 
 		buf[0] = 0

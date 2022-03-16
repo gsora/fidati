@@ -7,7 +7,7 @@ import (
 	"log"
 	"math"
 
-	usbarmory "github.com/f-secure-foundry/tamago/board/f-secure/usbarmory/mark-two"
+	usbarmory "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
 )
 
 const (
@@ -54,9 +54,9 @@ func sdWrite(offset int, data []byte) error {
 }
 
 func sdRead(offset, numBlocks int) ([]byte, error) {
-	ret := make([]byte, numBlocks*usbarmory.SD.Info().BlockSize)
+	ret := make([]byte, numBlocks)
 
-	return ret, usbarmory.SD.ReadBlocks(offset, numBlocks, ret)
+	return ret, usbarmory.SD.ReadBlocks(offset, ret)
 }
 
 type sdCounter struct {
