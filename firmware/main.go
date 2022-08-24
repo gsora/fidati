@@ -8,8 +8,8 @@ import (
 
 	"github.com/gsora/fidati/firmware/leds"
 
-	usbarmory "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
-	"github.com/usbarmory/tamago/soc/imx6"
+	usbarmory "github.com/usbarmory/tamago/board/usbarmory/mk2"
+	"github.com/usbarmory/tamago/nxp/imx6ul"
 
 	_ "github.com/gsora/fidati/firmware/certs"
 )
@@ -32,21 +32,21 @@ func init() {
 	log.SetFlags(log.Lshortfile)
 	enableLogs()
 
-	model := imx6.Model()
-	_, family, revMajor, revMinor := imx6.SiliconVersion()
+	model := imx6ul.Model()
+	_, family, revMajor, revMinor := imx6ul.SiliconVersion()
 
-	if !imx6.Native {
+	if !imx6ul.Native {
 		log.Fatal("running fidati on emulated hardware is not supported")
 	}
 
-	if err := imx6.SetARMFreq(900); err != nil {
+	if err := imx6ul.SetARMFreq(900); err != nil {
 		log.Printf("WARNING: error setting ARM frequency: %v", err)
 	}
 
-	banner += fmt.Sprintf(" • %s %d MHz", model, imx6.ARMFreq()/1000000)
+	banner += fmt.Sprintf(" • %s %d MHz", model, imx6ul.ARMFreq()/1000000)
 
 	log.Printf("imx6_soc: %s (%#x, %d.%d) @ %d MHz - native:%v",
-		model, family, revMajor, revMinor, imx6.ARMFreq()/1000000, imx6.Native)
+		model, family, revMajor, revMinor, imx6ul.ARMFreq()/1000000, imx6ul.Native)
 
 	err := usbarmory.SD.Detect()
 	if err != nil {
@@ -105,14 +105,14 @@ func rebootWatcher() {
 
 	for {
 		runtime.Gosched()
-		imx6.UART2.Read(buf)
+		imx6ul.UART2.Read(buf)
 		if buf[0] == 0 {
 			continue
 		}
 
 		if buf[0] == 'r' {
 			log.Println("rebooting...")
-			imx6.Reset()
+			imx6ul.Reset()
 		}
 
 		buf[0] = 0
