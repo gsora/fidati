@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	usbarmory "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
+	usbarmory "github.com/usbarmory/tamago/board/usbarmory/mk2"
 )
 
 func enableLogs() {

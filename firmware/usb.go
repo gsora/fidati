@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/usbarmory/tamago/soc/imx6/usb"
+	"github.com/usbarmory/tamago/soc/nxp/usb"
 
 	"github.com/gsora/fidati"
 	"github.com/gsora/fidati/keyring"

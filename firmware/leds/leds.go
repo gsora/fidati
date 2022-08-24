@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	usbarmory "github.com/usbarmory/tamago/board/f-secure/usbarmory/mark-two"
+	usbarmory "github.com/usbarmory/tamago/board/usbarmory/mk2"
 )
 
 // cancelFuncs holds references to the functions needed to stop
