@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 )
 
 // Token represents a unit which can handle U2F messages.
@@ -86,6 +87,7 @@ type Handler struct {
 
 	// u2fhid state
 	state *u2fHIDState
+	stateLock sync.Mutex
 
 	// mapping between u2fHIDCommands and Token instances
 	commandMappings map[u2fHIDCommand]CommandHandler

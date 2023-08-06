@@ -25,6 +25,9 @@ func zeroPad(b []byte) []byte {
 // Tx handles USB endpoint data outtake.
 // res will always not be nil.
 func (h *Handler) Tx(buf []byte, lastErr error) (res []byte, err error) {
+	h.stateLock.Lock()
+	defer h.stateLock.Unlock()
+	
 	if h.state.outboundMsgs == nil || h.state.accumulatingMsgs {
 		return
 	}
@@ -68,6 +71,10 @@ func (h *Handler) Rx(buf []byte, lastErr error) (res []byte, err error) {
 		return
 	}
 
+	h.stateLock.Lock()
+	defer h.stateLock.Unlock()
+
+	// From here onwards, all the call stack that originates from parseMsg has exclusive access to h.state.
 	msgs, err := h.parseMsg(buf)
 	if err != nil {
 		flog.Logger.Println(err)
